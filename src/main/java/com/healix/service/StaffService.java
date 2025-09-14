@@ -3,8 +3,10 @@ package com.healix.service;
 import com.healix.entity.Staff;
 import com.healix.enums.STAFF_STATUS;
 import com.healix.repository.StaffRepository;
+import com.healix.util.CurrentUser;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,9 +14,11 @@ import java.util.Optional;
 public class StaffService {
 
     private final StaffRepository staffRepository;
+    private final CurrentUser currentUser;
 
-    public StaffService(StaffRepository staffRepository) {
+    public StaffService(StaffRepository staffRepository, CurrentUser currentUser) {
         this.staffRepository = staffRepository;
+        this.currentUser = currentUser;
     }
 
     public List<Staff> getAllStaffDetails() {
@@ -39,9 +43,10 @@ public class StaffService {
             // ✅ Perform update
             staff.setFullName(updatedStaff.getFullName());
             staff.setEmailId(updatedStaff.getEmailId());
-            staff.setRole(updatedStaff.getRole());
+            staff.setRoles(updatedStaff.getRoles());
             staff.setContactNumber(updatedStaff.getContactNumber());
-            staff.setUpdatedAt(updatedStaff.getUpdatedAt());
+            staff.setUpdatedBy(currentUser.getCurrentUser().getId());
+            staff.setUpdatedAt(LocalDateTime.now());
 
             return staffRepository.save(staff);
 

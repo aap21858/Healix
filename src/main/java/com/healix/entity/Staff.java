@@ -4,10 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-@Table(name = "staff_details")
+@Table(name = "Staff")
 public class Staff {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,8 +22,10 @@ public class Staff {
     @Column(name = "password")
     private String password;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "StaffRoles", joinColumns = @JoinColumn(name = "staffId"))
     @Column(name = "role")
-    private String role;
+    private Set<String> roles = new HashSet<>();
 
     @Column(name = "full_name")
     private String fullName;
@@ -35,8 +39,14 @@ public class Staff {
     @Column(name = "token")
     private String token;
 
+    @Column(name = "created_by")
+    private Long createdBy;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_by")
+    private Long updatedBy;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

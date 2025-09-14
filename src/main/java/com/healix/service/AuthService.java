@@ -5,6 +5,7 @@ import com.healix.dto.LoginResponse;
 import com.healix.entity.Staff;
 import com.healix.enums.STAFF_STATUS;
 import com.healix.repository.StaffRepository;
+import com.healix.util.CurrentUser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,14 +23,16 @@ public class AuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final StaffRepository staffRepository;
+    private final CurrentUser currentUser;
     @Value("${frontend.base.url}")
     private String frontEndBaseUrl;
 
-    public AuthService(StaffRepository userRepo, JwtService jwtService, PasswordEncoder passwordEncoder, StaffRepository staffRepository) {
+    public AuthService(StaffRepository userRepo, JwtService jwtService, PasswordEncoder passwordEncoder, StaffRepository staffRepository, CurrentUser currentUser) {
         this.userRepo = userRepo;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.staffRepository = staffRepository;
+        this.currentUser = currentUser;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -39,7 +42,7 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(staff);
-        return new LoginResponse(token, staff.getRole());
+        return new LoginResponse(token, staff.getRoles());
     }
 
     public Staff getStaffByEmailId(String emailId) {
@@ -72,6 +75,8 @@ public class AuthService {
     public void setPasswordForNewStaff(String password, Staff staff) {
         staff.setPassword(passwordEncoder.encode(password));
         staff.setStatus(String.valueOf(STAFF_STATUS.ACTIVE));
+        staff.setCreatedBy(currentUser.getCurrentUser().getId());
+        staff.setCreatedAt(LocalDateTime.now());
         staff.setToken(null);
         staff.setTokenCreatedAt(null);
 

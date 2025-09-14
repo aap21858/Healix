@@ -3,9 +3,9 @@ package com.healix.controller;
 import com.healix.entity.Staff;
 import com.healix.service.StaffService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/staff")
@@ -17,6 +17,7 @@ public class StaffController {
         this.staffService = staffService;
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping("/")
     public ResponseEntity<?> getAllStaffDetails() {
         try {
@@ -30,7 +31,7 @@ public class StaffController {
     public ResponseEntity<?> updateStaffDetail(@PathVariable String id, @RequestBody Staff staff) {
         try{
             staffService.updateStaff(Long.valueOf(id), staff);
-            return ResponseEntity.ok("Record Updated for " + staff.getFullName() + "successfully");
+            return ResponseEntity.ok("Record Updated for " + staff.getFullName() + " successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

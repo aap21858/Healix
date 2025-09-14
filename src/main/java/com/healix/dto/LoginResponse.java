@@ -1,4 +1,4 @@
 package com.healix.dto;
 
-public record LoginResponse(String token, String role) {}
+public record LoginResponse(String token, java.util.Set<String> role) {}
 
