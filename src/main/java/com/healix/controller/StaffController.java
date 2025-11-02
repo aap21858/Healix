@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/staff")
+@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 public class StaffController {
 
     private final StaffService staffService;
@@ -17,7 +18,6 @@ public class StaffController {
         this.staffService = staffService;
     }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping("/")
     public ResponseEntity<?> getAllStaffDetails() {
         try {

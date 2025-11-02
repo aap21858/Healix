@@ -25,6 +25,123 @@ CREATE TABLE staff_roles (
         ON DELETE CASCADE
 );
 
+-- Patient Registration Tables
+CREATE TABLE patients (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    patient_id VARCHAR(20) UNIQUE NOT NULL, -- e.g., SNG2025001
+
+    -- Personal Information
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    gender VARCHAR(10) NOT NULL, -- MALE, FEMALE, OTHER
+    blood_group VARCHAR(5), -- A_POSITIVE, B_NEGATIVE, etc.
+    aadhar_number VARCHAR(12) UNIQUE,
+    photo_url VARCHAR(500),
+
+    -- Contact Information
+    mobile_number VARCHAR(13) NOT NULL UNIQUE,
+    email_id VARCHAR(100),
+    preferred_contact_method VARCHAR(20), -- SMS, WHATSAPP, EMAIL, PHONE_CALL
+
+    -- Address
+    address_line1 VARCHAR(510),
+    city VARCHAR(100) NOT NULL,
+    district VARCHAR(100),
+    state VARCHAR(50) DEFAULT 'Maharashtra',
+    pin_code VARCHAR(6) NOT NULL,
+
+    -- Audit fields
+    status VARCHAR(15) DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE
+    created_by BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT,
+    updated_at TIMESTAMP,
+
+    CONSTRAINT fk_patient_created_by FOREIGN KEY (created_by) REFERENCES Staff(id)
+);
+
+-- Emergency Contact Information
+CREATE TABLE patient_emergency_contacts (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    patient_id BIGINT NOT NULL,
+    contact_person_name VARCHAR(100) NOT NULL,
+    relationship VARCHAR(20) NOT NULL, -- SPOUSE, PARENT, CHILD, SIBLING, FRIEND, OTHER
+    contact_number VARCHAR(13) NOT NULL,
+    is_primary BOOLEAN DEFAULT TRUE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+
+    CONSTRAINT fk_emergency_contact_patient FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+);
+-- ============================================
+-- REFERENCE TABLES (Admin-manageable)
+-- ============================================
+
+-- Insurance Schemes Reference Table
+CREATE TABLE insurance_schemes (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    scheme_code VARCHAR(20) UNIQUE NOT NULL,
+    scheme_name VARCHAR(200) NOT NULL,
+    scheme_type VARCHAR(20) NOT NULL, -- GOVERNMENT, PRIVATE
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    display_order INT DEFAULT 0,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+-- Insurance Information
+CREATE TABLE patient_insurance (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    patient_id BIGINT NOT NULL,
+
+    has_insurance BOOLEAN NOT NULL DEFAULT FALSE,
+    insurance_type VARCHAR(20), -- GOVERNMENT, PRIVATE, NONE
+    scheme_id BIGINT, -- Foreign key to insurance_schemes table
+    policy_card_number VARCHAR(50),
+
+    policy_holder_name VARCHAR(100),
+    relationship_to_holder VARCHAR(20), -- SELF, SPOUSE, CHILD, PARENT
+    policy_expiry_date DATE,
+
+    insurance_card_front_url VARCHAR(500),
+    insurance_card_back_url VARCHAR(500),
+    pmjay_card_url VARCHAR(500),
+
+    claim_amount_limit DECIMAL(10, 2),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+
+    CONSTRAINT fk_insurance_patient FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    CONSTRAINT fk_insurance_scheme FOREIGN KEY (scheme_id) REFERENCES insurance_schemes(id)
+);
+
+-- Medical History
+CREATE TABLE patient_medical_history (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    patient_id BIGINT NOT NULL,
+
+    known_allergies TEXT, -- JSON array or comma-separated
+    current_medications TEXT,
+    past_surgeries TEXT,
+    chronic_conditions TEXT,
+    family_medical_history TEXT,
+    disability TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+
+    CONSTRAINT fk_medical_history_patient FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+);
+
+-- ============================================
+-- SEED DATA
+-- ============================================
+
 -- Default admin user for testing (password: admin123)
 INSERT INTO Staff (email_id, password, full_name, contact_number, status, created_by)
 VALUES
@@ -44,4 +161,50 @@ VALUES
 
 INSERT INTO staff_roles (staff_id, role) VALUES('1', 'ADMIN');
 INSERT INTO staff_roles (staff_id, role) VALUES('1', 'DOCTOR');
+INSERT INTO staff_roles (staff_id, role) VALUES('2', 'DOCTOR');
+INSERT INTO staff_roles (staff_id, role) VALUES('2', 'RECEPTIONIST');
+INSERT INTO staff_roles (staff_id, role) VALUES('3', 'DOCTOR');
+
+-- Insurance Schemes
+INSERT INTO insurance_schemes (scheme_code, scheme_name, scheme_type, display_order) VALUES
+('MJPJAY', 'Mahatma Jyotiba Phule Jan Arogya Yojana (MJPJAY)', 'GOVERNMENT', 1),
+('PMJAY', 'Pradhan Mantri Jan Arogya Yojana (PM-JAY/Ayushman Bharat)', 'GOVERNMENT', 2),
+('ESI', 'Employee State Insurance (ESI)', 'GOVERNMENT', 3),
+('CGHS', 'Central Government Health Scheme (CGHS)', 'GOVERNMENT', 4),
+('RGJAY', 'Rajiv Gandhi Jeevandayee Arogya Yojana (RGJAY)', 'GOVERNMENT', 5),
+('STAR_HEALTH', 'Star Health', 'PRIVATE', 6),
+('ICICI_LOMBARD', 'ICICI Lombard', 'PRIVATE', 7),
+('HDFC_ERGO', 'HDFC Ergo', 'PRIVATE', 8),
+('MAX_BUPA', 'Max Bupa', 'PRIVATE', 9),
+('CARE_HEALTH', 'Care Health', 'PRIVATE', 10),
+('OTHER', 'Other (specify)', 'PRIVATE', 11);
+
+-- Sample Patient Data
+INSERT INTO patients (patient_id, first_name, last_name, date_of_birth, gender, blood_group,
+                     mobile_number, email_id, city, pin_code, created_by) VALUES
+('SNG2025001', 'Rahul', 'Patil', '1985-03-15', 'MALE', 'O_',
+ '9876543210', 'rahul.patil@gmail.com', 'Sangli', '416416', 1),
+('SNG2025002', 'Priya', 'Deshmukh', '1990-07-22', 'FEMALE', 'A_',
+ '9876543211', 'priya.d@gmail.com', 'Sangli', '416416', 1);
+
+-- Sample Emergency Contacts
+INSERT INTO patient_emergency_contacts (patient_id, contact_person_name, relationship, contact_number) VALUES
+(1, 'Sunita Patil', 'SPOUSE', '9876543220'),
+(2, 'Vijay Deshmukh', 'SPOUSE', '9876543221');
+
+-- Sample Insurance
+INSERT INTO patient_insurance (patient_id, has_insurance, insurance_type, scheme_id, policy_card_number) VALUES
+(1, TRUE, 'GOVERNMENT', 1, 'MJPJAY123456'),
+(2, TRUE, 'GOVERNMENT', 2, 'PMJAY789012');
+
+-- Sample Medical History
+INSERT INTO patient_medical_history (patient_id, known_allergies, current_medications) VALUES
+(1, 'Penicillin, Peanuts', 'Metformin 500mg'),
+(2, 'None Known', 'None');
+
+-- Create indexes for performance
+CREATE INDEX idx_patient_mobile ON patients(mobile_number);
+CREATE INDEX idx_patient_aadhar ON patients(aadhar_number);
+CREATE INDEX idx_patient_id ON patients(patient_id);
+CREATE INDEX idx_patient_status ON patients(status);
 

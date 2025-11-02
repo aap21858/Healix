@@ -4,18 +4,16 @@ import com.healix.dto.LoginRequest;
 import com.healix.dto.LoginResponse;
 import com.healix.dto.SetPasswordRequest;
 import com.healix.entity.Staff;
-import com.healix.enums.STAFF_STATUS;
 import com.healix.service.AuthService;
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -29,7 +27,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest request) {
+    public LoginResponse login(@RequestBody LoginRequest request) throws BadRequestException {
         return authService.login(request);
     }
 

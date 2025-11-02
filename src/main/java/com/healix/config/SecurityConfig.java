@@ -39,7 +39,20 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("api/admin/**", "api/staff/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("api/auth/**", "/h2-console/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/h2-console/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui/v3/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/configuration/**",
+                                "/api-docs/**",
+                                "/error",
+                                "/swagger-resources/**",
+                                "/.well-known//**",
+                                "/webjars/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

@@ -1,0 +1,1418 @@
+openapi: 3.0.3
+info:
+  title: Healix Clinic Management API
+  description: |
+    REST API for clinic management system with EHR support for Maharashtra small to mid-sized clinics.
+    
+    ## Features
+    - Patient registration and management
+    - Emergency contact management
+    - Insurance details tracking
+    - Medical history records
+
+  version: 1.0.0
+  contact:
+    name: Healix Support
+    email: support@healix.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://localhost:8080
+    description: Development Server
+  - url: https://api.healix.com
+    description: Production Server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Patient Management
+    description: Patient registration and CRUD operations
+  - name: Insurance Schemes
+    description: Insurance scheme reference data
+  - name: Staff Management
+    description: Staff/Admin user management
+
+# ============================================
+# PATHS (API Endpoints)
+# ============================================
+
+paths:
+  # ==================== Authentication ====================
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and receive JWT token
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/validate:
+    get:
+      tags:
+        - Authentication
+      summary: Validate JWT token
+      description: Validate if the provided JWT token is valid
+      operationId: validateToken
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Valid token"
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/set-password:
+    post:
+      tags:
+        - Authentication
+      summary: Set/Reset password
+      description: Set password for new user or reset forgotten password
+      operationId: setPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPasswordRequest'
+      responses:
+        '200':
+          description: Password set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password set successfully"
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== Patient Management ====================
+
+  /api/patients:
+    post:
+      tags:
+        - Patient Management
+      summary: Register multiple patients (batch registration)
+      description: Register one or more patients with personal, emergency, insurance, and medical details
+      operationId: registerPatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PatientRegistrationRequest'
+              minItems: 1
+              maxItems: 1000  # Optional: limit batch size
+      responses:
+        '201':
+          description: Patients registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchPatientResponse'  # ✅ New response schema
+        '207':
+          description: Multi-status - Some patients registered, some failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchPatientResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    get:
+      tags:
+        - Patient Management
+      summary: Get all patients (paginated)
+      description: Retrieve paginated list of all patients
+      operationId: getAllPatients
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: Patients retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientPageResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/patients/{id}:
+    get:
+      tags:
+        - Patient Management
+      summary: Get patient by ID
+      description: Retrieve patient details by database ID
+      operationId: getPatientById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Patient database ID
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Patient found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientResponse'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    put:
+      tags:
+        - Patient Management
+      summary: Update patient
+      description: Update existing patient details
+      operationId: updatePatient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Patient database ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientRegistrationRequest'
+      responses:
+        '200':
+          description: Patient updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientResponse'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    delete:
+      tags:
+        - Patient Management
+      summary: Delete (deactivate) patient
+      description: Soft delete patient by setting status to INACTIVE
+      operationId: deletePatient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Patient database ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Patient deactivated successfully
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/patients/patient-id/{patientId}:
+    get:
+      tags:
+        - Patient Management
+      summary: Get patient by Patient ID
+      description: Retrieve patient details by Patient ID (e.g., SNG2025001)
+      operationId: getPatientByPatientId
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          description: Patient ID (e.g., SNG2025001)
+          schema:
+            type: string
+            example: "SNG2025001"
+      responses:
+        '200':
+          description: Patient found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientResponse'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/patients/search:
+    get:
+      tags:
+        - Patient Management
+      summary: Search patients
+      description: Search patients by name, patient ID, or mobile number
+      operationId: searchPatients
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: Search query (name, patient ID, or mobile)
+          schema:
+            type: string
+            example: "Rahul"
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientPageResponse'
+
+  # ==================== Insurance Schemes ====================
+
+  /api/insurance-schemes:
+    get:
+      tags:
+        - Insurance Schemes
+      summary: Get all active insurance schemes
+      description: Retrieve all active insurance schemes ordered by display order
+      operationId: getAllActiveSchemes
+      security: []
+      responses:
+        '200':
+          description: Insurance schemes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InsuranceScheme'
+
+  /api/insurance-schemes/type/{schemeType}:
+    get:
+      tags:
+        - Insurance Schemes
+      summary: Get schemes by type
+      description: Get GOVERNMENT or PRIVATE insurance schemes
+      operationId: getSchemesByType
+      security: []
+      parameters:
+        - name: schemeType
+          in: path
+          required: true
+          description: Scheme type (GOVERNMENT or PRIVATE)
+          schema:
+            type: string
+            enum:
+              - GOVERNMENT
+              - PRIVATE
+            example: "GOVERNMENT"
+      responses:
+        '200':
+          description: Schemes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InsuranceScheme'
+
+  # ==================== Staff Management ====================
+
+  /api/staff:
+    get:
+      tags:
+        - Staff Management
+      summary: Get all staff members
+      description: Retrieve all staff members (Admin only)
+      operationId: getAllStaff
+      responses:
+        '200':
+          description: Staff list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffResponse'
+
+  /api/staff/{id}:
+    get:
+      tags:
+        - Staff Management
+      summary: Get staff by ID
+      description: Retrieve staff member details by ID
+      operationId: getStaffById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Staff member found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffResponse'
+        '404':
+          description: Staff not found
+
+    put:
+      tags:
+        - Staff Management
+      summary: Update staff member
+      description: Update staff member details (Admin only)
+      operationId: updateStaff
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffUpdateRequest'
+      responses:
+        '200':
+          description: Staff updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Record Updated for John Doe successfully"
+
+    delete:
+      tags:
+        - Staff Management
+      summary: Delete staff member
+      description: Delete staff member (Admin only)
+      operationId: deleteStaff
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Staff deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Record Deleted Successfully"
+
+  /api/admin/register:
+    post:
+      tags:
+        - Staff Management
+      summary: Register new staff member
+      description: Register new staff/admin user (Admin only)
+      operationId: registerStaff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffRegistrationRequest'
+      responses:
+        '200':
+          description: Staff registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Activation email sent to user@example.com"
+
+    # ==================== Patient Management ====================
+
+  /api/patients/upload-csv:
+      post:
+        tags:
+          - Patient Management
+        summary: Upload CSV file for bulk patient registration
+        description: |
+          Upload a CSV file containing patient details for batch registration.
+
+          **CSV Format:**
+          - First row must be headers (case-insensitive)
+          - Required columns: firstName, lastName, dateOfBirth, gender, mobileNumber, city, pinCode
+          - Optional columns: bloodGroup, aadharNumber, emailId, addressLine1, district, state
+
+          **Example CSV:**
+          ```
+          firstName,lastName,dateOfBirth,gender,bloodGroup,mobileNumber,emailId,city,pinCode
+          Rahul,Patil,1985-03-15,MALE,O+,9876543210,rahul@gmail.com,Sangli,416416
+          Priya,Sharma,1990-07-22,FEMALE,A+,9876543211,priya@gmail.com,Sangli,416416
+          ```
+        operationId: uploadPatientsCsv
+        requestBody:
+          required: true
+          content:
+            multipart/form-data:
+              schema:
+                type: object
+                required:
+                  - file
+                properties:
+                  file:
+                    type: string
+                    format: binary
+                    description: CSV file containing patient data
+        responses:
+          '200':
+            description: CSV processed successfully (may contain partial failures)
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/CsvUploadResponse'
+          '400':
+            description: Invalid CSV file or format
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ErrorResponse'
+          '401':
+            $ref: '#/components/responses/UnauthorizedError'
+
+  /api/patients/download-csv-template:
+    get:
+      tags:
+        - Patient Management
+      summary: Download CSV template
+      description: Download a CSV template file with proper headers for patient import
+      operationId: downloadCsvTemplate
+      responses:
+        '200':
+          description: CSV template file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+# ============================================
+# COMPONENTS (Schemas, Parameters, etc.)
+# ============================================
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number (0-indexed)
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+        example: 0
+
+    SizeParam:
+      name: size
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        example: 20
+
+    SortParam:
+      name: sort
+      in: query
+      description: "sort param"
+      schema:
+        type: string
+        default: "createdAt,desc"
+        example: "createdAt,desc"
+
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ==================== Enums ====================
+
+    Gender:
+      type: string
+      enum:
+        - MALE
+        - FEMALE
+        - OTHER
+      example: MALE
+
+    BloodGroup:
+      type: string
+      enum:
+        - "A+"
+        - "A-"
+        - "B+"
+        - "B-"
+        - "O+"
+        - "O-"
+        - "AB+"
+        - "AB-"
+      example: "O+"
+
+    Relationship:
+      type: string
+      enum:
+        - SELF
+        - SPOUSE
+        - PARENT
+        - CHILD
+        - SIBLING
+        - FRIEND
+        - OTHER
+      example: SPOUSE
+
+    InsuranceType:
+      type: string
+      enum:
+        - GOVERNMENT
+        - PRIVATE
+        - NONE
+      example: GOVERNMENT
+
+    PreferredContactMethod:
+      type: string
+      enum:
+        - SMS
+        - WHATSAPP
+        - EMAIL
+        - PHONE_CALL
+      example: WHATSAPP
+
+    PatientStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+      example: ACTIVE
+
+    StaffStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+      example: ACTIVE
+
+    StaffRole:
+      type: string
+      enum:
+        - ADMIN
+        - DOCTOR
+        - RECEPTIONIST
+        - NURSE
+      example: DOCTOR
+
+    # ==================== Authentication Models ====================
+
+    LoginRequest:
+      type: object
+      required:
+        - emailId
+        - password
+      properties:
+        emailId:
+          type: string
+          format: email
+          example: "aap@gmail.com"
+        password:
+          type: string
+          format: password
+          example: "admin123"
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        role:
+          type: array
+          items:
+            type: string
+          example: ["ROLE_ADMIN", "ROLE_DOCTOR"]
+
+    SetPasswordRequest:
+      type: object
+      required:
+        - token
+        - password
+      properties:
+        token:
+          type: string
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: "NewSecurePass123!"
+
+    # ==================== Patient Models ====================
+
+    PatientRegistrationRequest:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      required:
+        - firstName
+        - lastName
+        - dateOfBirth
+        - gender
+        - mobileNumber
+        - city
+        - pinCode
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+          example: "Rahul"
+        lastName:
+          type: string
+          maxLength: 100
+          example: "Patil"
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1985-03-15"
+        gender:
+          $ref: '#/components/schemas/Gender'
+        bloodGroup:
+          $ref: '#/components/schemas/BloodGroup'
+        aadharNumber:
+          type: string
+          pattern: '^[0-9]{12}$'
+          example: "123456789012"
+        photoUrl:
+          type: string
+          format: string
+          maxLength: 500
+          example: "https://example.com/photos/rahul.jpg"
+        mobileNumber:
+          type: string
+          pattern: '^[0-9]{10}$'
+          example: "9876543210"
+        emailId:
+          type: string
+          format: email
+          example: "rahul.patil@gmail.com"
+        preferredContactMethod:
+          $ref: '#/components/schemas/PreferredContactMethod'
+        addressLine1:
+          type: string
+          maxLength: 510
+          example: "123 Main Street, Vishrambag"
+        city:
+          type: string
+          maxLength: 100
+          example: "Sangli"
+        district:
+          type: string
+          maxLength: 100
+          example: "Sangli"
+        state:
+          type: string
+          maxLength: 50
+          default: "Maharashtra"
+          example: "Maharashtra"
+        pinCode:
+          type: string
+          pattern: '^[0-9]{6}$'
+          example: "416416"
+        emergencyContacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmergencyContactRequest'
+        insurance:
+          $ref: '#/components/schemas/InsuranceRequest'
+        medicalHistory:
+          $ref: '#/components/schemas/MedicalHistoryRequest'
+
+    EmergencyContactRequest:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      required:
+        - contactPersonName
+        - relationship
+        - contactNumber
+      properties:
+        contactPersonName:
+          type: string
+          maxLength: 100
+          example: "Sunita Patil"
+        relationship:
+          $ref: '#/components/schemas/Relationship'
+        contactNumber:
+          type: string
+          pattern: '^[0-9]{10}$'
+          example: "9876543220"
+        isPrimary:
+          type: boolean
+          default: true
+          example: true
+
+    InsuranceRequest:
+      type: object
+      required:
+        - hasInsurance
+      properties:
+        hasInsurance:
+          type: boolean
+          example: true
+        insuranceType:
+          $ref: '#/components/schemas/InsuranceType'
+        schemeId:
+          type: integer
+          format: int64
+          example: 1
+        policyCardNumber:
+          type: string
+          maxLength: 50
+          example: "MJPJAY123456"
+        policyHolderName:
+          type: string
+          maxLength: 100
+          example: "Rahul Patil"
+        relationshipToHolder:
+          $ref: '#/components/schemas/Relationship'
+        policyExpiryDate:
+          type: string
+          format: date
+          example: "2025-12-31"
+        insuranceCardFrontUrl:
+          type: string
+          format: string
+          maxLength: 500
+        insuranceCardBackUrl:
+          type: string
+          format: string
+          maxLength: 500
+        pmjayCardUrl:
+          type: string
+          format: string
+          maxLength: 500
+        claimAmountLimit:
+          type: number
+          format: decimal
+          minimum: 0
+          example: 500000.00
+
+    MedicalHistoryRequest:
+      type: object
+      properties:
+        knownAllergies:
+          type: string
+          example: "Penicillin, Peanuts"
+        currentMedications:
+          type: string
+          example: "Metformin 500mg twice daily"
+        pastSurgeries:
+          type: string
+          example: "Appendectomy (2010)"
+        chronicConditions:
+          type: string
+          example: "Type 2 Diabetes, Hypertension"
+        familyMedicalHistory:
+          type: string
+          example: "Father had diabetes"
+        disability:
+          type: string
+          example: "None"
+
+    PatientResponse:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        patientId:
+          type: string
+          example: "SNG2025001"
+        firstName:
+          type: string
+          example: "Rahul"
+        lastName:
+          type: string
+          example: "Patil"
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1985-03-15"
+        age:
+          type: integer
+          example: 39
+        gender:
+          $ref: '#/components/schemas/Gender'
+        bloodGroup:
+          $ref: '#/components/schemas/BloodGroup'
+        aadharNumber:
+          type: string
+          example: "123456789012"
+        photoUrl:
+          type: string
+          format: string
+        mobileNumber:
+          type: string
+          example: "9876543210"
+        emailId:
+          type: string
+          format: email
+          example: "rahul.patil@gmail.com"
+        preferredContactMethod:
+          $ref: '#/components/schemas/PreferredContactMethod'
+        addressLine1:
+          type: string
+          example: "123 Main Street"
+        city:
+          type: string
+          example: "Sangli"
+        district:
+          type: string
+          example: "Sangli"
+        state:
+          type: string
+          example: "Maharashtra"
+        pinCode:
+          type: string
+          example: "416416"
+        emergencyContacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmergencyContactResponse'
+        insurance:
+          $ref: '#/components/schemas/InsuranceResponse'
+        medicalHistory:
+          $ref: '#/components/schemas/MedicalHistoryResponse'
+        status:
+          $ref: '#/components/schemas/PatientStatus'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-01-20T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-01-21T15:45:00Z"
+
+    EmergencyContactResponse:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      properties:
+        id:
+          type: integer
+          format: int64
+        contactPersonName:
+          type: string
+        relationship:
+          $ref: '#/components/schemas/Relationship'
+        contactNumber:
+          type: string
+        isPrimary:
+          type: boolean
+
+    InsuranceResponse:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      properties:
+        id:
+          type: integer
+          format: int64
+        hasInsurance:
+          type: boolean
+        insuranceType:
+          $ref: '#/components/schemas/InsuranceType'
+        schemeId:
+          type: integer
+          format: int64
+        schemeName:
+          type: string
+          example: "Mahatma Jyotiba Phule Jan Arogya Yojana (MJPJAY)"
+        policyCardNumber:
+          type: string
+        policyHolderName:
+          type: string
+        relationshipToHolder:
+          $ref: '#/components/schemas/Relationship'
+        policyExpiryDate:
+          type: string
+          format: date
+        insuranceCardFrontUrl:
+          type: string
+          format: string
+        insuranceCardBackUrl:
+          type: string
+          format: string
+        pmjayCardUrl:
+          type: string
+          format: string
+        claimAmountLimit:
+          type: number
+          format: decimal
+
+    MedicalHistoryResponse:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      properties:
+        id:
+          type: integer
+          format: int64
+        knownAllergies:
+          type: string
+        currentMedications:
+          type: string
+        pastSurgeries:
+          type: string
+        chronicConditions:
+          type: string
+        familyMedicalHistory:
+          type: string
+        disability:
+          type: string
+
+    PatientPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatientResponse'
+        pageable:
+          $ref: '#/components/schemas/Pageable'
+        totalPages:
+          type: integer
+          example: 5
+        totalElements:
+          type: integer
+          format: int64
+          example: 100
+        last:
+          type: boolean
+          example: false
+        size:
+          type: integer
+          example: 20
+        number:
+          type: integer
+          example: 0
+        numberOfElements:
+          type: integer
+          example: 20
+        first:
+          type: boolean
+          example: true
+        empty:
+          type: boolean
+          example: false
+
+    Pageable:
+      type: object
+      properties:
+        sort:
+          $ref: '#/components/schemas/Sort'
+        offset:
+          type: integer
+          format: int64
+        pageNumber:
+          type: integer
+        pageSize:
+          type: integer
+        paged:
+          type: boolean
+        unpaged:
+          type: boolean
+
+    Sort:
+      type: object
+      properties:
+        empty:
+          type: boolean
+        sorted:
+          type: boolean
+        unsorted:
+          type: boolean
+
+    # ==================== Insurance Scheme Models ====================
+
+    InsuranceScheme:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        schemeCode:
+          type: string
+          example: "MJPJAY"
+        schemeName:
+          type: string
+          example: "Mahatma Jyotiba Phule Jan Arogya Yojana (MJPJAY)"
+        schemeType:
+          type: string
+          enum:
+            - GOVERNMENT
+            - PRIVATE
+          example: "GOVERNMENT"
+        description:
+          type: string
+        isActive:
+          type: boolean
+          example: true
+        displayOrder:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ==================== Staff Models ====================
+
+    StaffRegistrationRequest:
+      type: object
+      required:
+        - emailId
+        - fullName
+        - contactNumber
+      properties:
+        emailId:
+          type: string
+          format: email
+          example: "doctor@example.com"
+        fullName:
+          type: string
+          maxLength: 255
+          example: "Dr. John Doe"
+        contactNumber:
+          type: string
+          pattern: '^[0-9]{10}$'
+          example: "9876543210"
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffRole'
+          example: ["DOCTOR"]
+
+    StaffUpdateRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+          maxLength: 255
+        contactNumber:
+          type: string
+          pattern: '^[0-9]{10}$'
+        status:
+          $ref: '#/components/schemas/StaffStatus'
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffRole'
+
+    StaffResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        emailId:
+          type: string
+          format: email
+        fullName:
+          type: string
+        contactNumber:
+          type: string
+        status:
+          $ref: '#/components/schemas/StaffStatus'
+        roles:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ==================== Error Models ====================
+
+    ErrorResponse:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-21T10:30:00Z"
+        status:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: "Not Found"
+        message:
+          type: string
+          example: "Patient not found with ID: 123"
+        path:
+          type: string
+          example: "/api/patient"
+
+    ValidationErrorResponse:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: "Validation Failed"
+        message:
+          type: string
+          example: "Invalid input data"
+        path:
+          type: string
+          example: "/api/patient"
+        validationErrors:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            firstName: "First name is required"
+            mobileNumber: "Mobile number must be 10 digits"
+
+    FailedRegistration:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      properties:
+        requestIndex:
+          type: integer
+          description: Index of the failed request in the input array
+          example: 2
+        patientData:
+          $ref: '#/components/schemas/PatientRegistrationRequest'
+        errorMessage:
+          type: string
+          description: Reason for failure
+          example: "Patient already exists with mobileNumber: 9876543210"
+        errorCode:
+          type: string
+          description: Error code for categorization
+          enum:
+            - DUPLICATE_MOBILE
+            - DUPLICATE_AADHAR
+            - VALIDATION_ERROR
+            - INTERNAL_ERROR
+          example: "DUPLICATE_MOBILE"
+
+    BatchPatientResponse:
+      type: object
+      x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+      properties:
+        totalRequested:
+          type: integer
+          description: Total number of patients in the request
+          example: 5
+        successCount:
+          type: integer
+          description: Number of successfully registered patients
+          example: 4
+        failureCount:
+          type: integer
+          description: Number of failed registrations
+          example: 1
+        successfulRegistrations:
+          type: array
+          description: List of successfully registered patients
+          items:
+            $ref: '#/components/schemas/PatientResponse'
+        failedRegistrations:
+          type: array
+          description: List of failed registrations with error details
+          items:
+            $ref: '#/components/schemas/FailedRegistration'
+
+        # ==================== CSV Upload Models ====================
+
+    CsvValidationError:
+          type: object
+          x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+          properties:
+            rowNumber:
+              type: integer
+              description: Row number in CSV file (1-based, excluding header)
+              example: 3
+            rowData:
+              type: object
+              additionalProperties:
+                type: string
+              description: Original row data from CSV
+              example:
+                firstName: "John"
+                lastName: ""
+                mobileNumber: "invalid"
+            errors:
+              type: array
+              description: List of validation errors for this row
+              items:
+                type: string
+              example:
+                - "lastName: Last name is required"
+                - "mobileNumber: Mobile number must be 10 digits"
+            errorType:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - DUPLICATE_ERROR
+                - PARSING_ERROR
+              example: "VALIDATION_ERROR"
+
+    CsvUploadResponse:
+          type: object
+          x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+          properties:
+            fileName:
+              type: string
+              description: Name of the uploaded file
+              example: "patients.csv"
+            totalRows:
+              type: integer
+              description: Total number of data rows in CSV (excluding header)
+              example: 10
+            successCount:
+              type: integer
+              description: Number of successfully registered patients
+              example: 8
+            failureCount:
+              type: integer
+              description: Number of failed registrations
+              example: 2
+            validationErrors:
+              type: array
+              description: List of validation errors for failed rows
+              items:
+                $ref: '#/components/schemas/CsvValidationError'
+            successfulRegistrations:
+              type: array
+              description: List of successfully registered patients
+              items:
+                $ref: '#/components/schemas/PatientResponse'
