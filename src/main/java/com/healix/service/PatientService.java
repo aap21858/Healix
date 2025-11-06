@@ -33,7 +33,7 @@ public class PatientService {
         return "SNG";
     }
 
-    private String generatePatientId(Long dbId, LocalDate dob){
+    private String generatePatientId(Long dbId){
         String year = String.valueOf(LocalDate.now().getYear());
         return "%s%s%03d".formatted(clinicCode(), year, dbId);
     }
@@ -140,8 +140,7 @@ public class PatientService {
         // Create and save patient
         Patient patient = mapToEntity(request);
         patient.setPatientId(generatePatientId(
-                RandomGenerator.getDefault().nextLong(10, 99),
-                request.getDateOfBirth()
+                RandomGenerator.getDefault().nextLong(10, 99)
         ));
 
         Patient savedPatient = patientRepository.save(patient);
@@ -258,10 +257,30 @@ public class PatientService {
     private Patient mapToEntity(PatientRegistrationRequest request) {
         Patient patient = patientMapper.toEntity(request);
         patient.setCreatedBy(currentUser.getCurrentUser().getId());
+        // If the request explicitly indicates hasInsurance == false, remove any mapped insurance entity so JPA will delete it
+        clearInsuranceWhenNotPresent(request, patient);
         return patient;
     }
 
     private void updateEntityFromRequest(Patient patient, PatientRegistrationRequest request) {
         patientMapper.updatePatientFromRequest(request, patient);
+        // If the request explicitly indicates hasInsurance == false, remove any existing insurance entity
+        clearInsuranceWhenNotPresent(request, patient);
+    }
+
+    private void clearInsuranceWhenNotPresent(PatientRegistrationRequest request, Patient patient) {
+        if (request == null) return;
+        if (request.getInsurance() == null) return;
+
+        Boolean hasInsurance = request.getInsurance().getHasInsurance();
+        if (hasInsurance != null && !hasInsurance) {
+            // Remove the associated PatientInsurance object entirely.
+            // Patient entity defines the relationship with `cascade = ALL` and `orphanRemoval = true`,
+            // so clearing the reference will cause JPA to delete the child row when the patient is saved.
+            if (patient.getInsurance() != null) {
+                patient.setInsurance(null);
+            }
+        }
     }
 }
+

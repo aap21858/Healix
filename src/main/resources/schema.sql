@@ -79,28 +79,28 @@ CREATE TABLE patient_emergency_contacts (
 -- REFERENCE TABLES (Admin-manageable)
 -- ============================================
 
--- Insurance Schemes Reference Table
-CREATE TABLE insurance_schemes (
+-- Dropdown lookup table for generic reference data (replaces insurance_schemes)
+CREATE TABLE dropdown_lookup (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    scheme_code VARCHAR(20) UNIQUE NOT NULL,
-    scheme_name VARCHAR(200) NOT NULL,
-    scheme_type VARCHAR(20) NOT NULL, -- GOVERNMENT, PRIVATE
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
+    type VARCHAR(50) NOT NULL,
+    code VARCHAR(50) NOT NULL,
+    description VARCHAR(200),
+    active BOOLEAN DEFAULT TRUE,
     display_order INT DEFAULT 0,
-
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP
+    updated_at TIMESTAMP,
+
+    CONSTRAINT uq_dropdown_type_code UNIQUE (type, code)
 );
 
--- Insurance Information
+-- Insurance Information (references dropdown_lookup instead of insurance_schemes)
 CREATE TABLE patient_insurance (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     patient_id BIGINT NOT NULL,
 
     has_insurance BOOLEAN NOT NULL DEFAULT FALSE,
     insurance_type VARCHAR(20), -- GOVERNMENT, PRIVATE, NONE
-    scheme_id BIGINT, -- Foreign key to insurance_schemes table
+    scheme_id BIGINT, -- Foreign key to dropdown_lookup table (type = 'INSURANCE_SCHEME')
     policy_card_number VARCHAR(50),
 
     policy_holder_name VARCHAR(100),
@@ -117,7 +117,7 @@ CREATE TABLE patient_insurance (
     updated_at TIMESTAMP,
 
     CONSTRAINT fk_insurance_patient FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
-    CONSTRAINT fk_insurance_scheme FOREIGN KEY (scheme_id) REFERENCES insurance_schemes(id)
+    CONSTRAINT fk_insurance_scheme FOREIGN KEY (scheme_id) REFERENCES dropdown_lookup(id)
 );
 
 -- Medical History
@@ -165,19 +165,20 @@ INSERT INTO staff_roles (staff_id, role) VALUES('2', 'DOCTOR');
 INSERT INTO staff_roles (staff_id, role) VALUES('2', 'RECEPTIONIST');
 INSERT INTO staff_roles (staff_id, role) VALUES('3', 'DOCTOR');
 
--- Insurance Schemes
-INSERT INTO insurance_schemes (scheme_code, scheme_name, scheme_type, display_order) VALUES
-('MJPJAY', 'Mahatma Jyotiba Phule Jan Arogya Yojana (MJPJAY)', 'GOVERNMENT', 1),
-('PMJAY', 'Pradhan Mantri Jan Arogya Yojana (PM-JAY/Ayushman Bharat)', 'GOVERNMENT', 2),
-('ESI', 'Employee State Insurance (ESI)', 'GOVERNMENT', 3),
-('CGHS', 'Central Government Health Scheme (CGHS)', 'GOVERNMENT', 4),
-('RGJAY', 'Rajiv Gandhi Jeevandayee Arogya Yojana (RGJAY)', 'GOVERNMENT', 5),
-('STAR_HEALTH', 'Star Health', 'PRIVATE', 6),
-('ICICI_LOMBARD', 'ICICI Lombard', 'PRIVATE', 7),
-('HDFC_ERGO', 'HDFC Ergo', 'PRIVATE', 8),
-('MAX_BUPA', 'Max Bupa', 'PRIVATE', 9),
-('CARE_HEALTH', 'Care Health', 'PRIVATE', 10),
-('OTHER', 'Other (specify)', 'PRIVATE', 11);
+-- Dropdown lookup seed data for insurance schemes (type = 'INSURANCE_SCHEME')
+INSERT INTO dropdown_lookup (type, code, description, display_order) VALUES
+('INSURANCE_SCHEME', 'MJPJAY', 'Mahatma Jyotiba Phule Jan Arogya Yojana (MJPJAY)', 1),
+('INSURANCE_SCHEME', 'PMJAY', 'Pradhan Mantri Jan Arogya Yojana (PM-JAY/Ayushman Bharat)', 2),
+('INSURANCE_SCHEME', 'ESI', 'Employee State Insurance (ESI)', 3),
+('INSURANCE_SCHEME', 'CGHS', 'Central Government Health Scheme (CGHS)', 4),
+('INSURANCE_SCHEME', 'RGJAY', 'Rajiv Gandhi Jeevandayee Arogya Yojana (RGJAY)', 5),
+('INSURANCE_SCHEME', 'OTHER', 'Other', 6),
+('INSURANCE_PROVIDER', 'STAR_HEALTH', 'Star Health', 7),
+('INSURANCE_PROVIDER', 'ICICI_LOMBARD', 'ICICI Lombard', 8),
+('INSURANCE_PROVIDER', 'HDFC_ERGO', 'HDFC Ergo', 9),
+('INSURANCE_PROVIDER', 'MAX_BUPA', 'Max Bupa', 10),
+('INSURANCE_PROVIDER', 'CARE_HEALTH', 'Care Health', 11),
+('INSURANCE_PROVIDER', 'OTHER', 'Other', 12);
 
 -- Sample Patient Data
 INSERT INTO patients (patient_id, first_name, last_name, date_of_birth, gender, blood_group,
@@ -207,4 +208,3 @@ CREATE INDEX idx_patient_mobile ON patients(mobile_number);
 CREATE INDEX idx_patient_aadhar ON patients(aadhar_number);
 CREATE INDEX idx_patient_id ON patients(patient_id);
 CREATE INDEX idx_patient_status ON patients(status);
-

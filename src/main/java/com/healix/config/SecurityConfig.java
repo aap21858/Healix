@@ -38,7 +38,7 @@ public class SecurityConfig {
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin) // 👈 allow H2 console in iframes
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("api/admin/**", "api/staff/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("api/admin/**", "api/staff/**", "/api/dropdowns/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/h2-console/**",

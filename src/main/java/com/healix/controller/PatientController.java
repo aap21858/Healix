@@ -5,6 +5,7 @@ import com.healix.mapper.PageMapper;
 import com.healix.model.*;
 import com.healix.service.CsvPatientService;
 import com.healix.service.PatientService;
+import com.healix.util.PatientValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
@@ -15,11 +16,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -38,6 +39,22 @@ public class PatientController implements PatientManagementApi {
 
         log.info("Batch patient registration request received for {} patients",
                 requests.size());
+
+        // Validate insurance fields for each request
+        List<String> validationErrors = new ArrayList<>();
+        for (int i = 0; i < requests.size(); i++) {
+            PatientRegistrationRequest req = requests.get(i);
+            if (req != null) {
+                List<String> missingFields = PatientValidator.validateInsurance(req.getInsurance());
+                if (!missingFields.isEmpty()) {
+                    validationErrors.add("request[" + i + "] missing: " + String.join(",", missingFields));
+                }
+            }
+        }
+
+        if (!validationErrors.isEmpty()) {
+            throw new IllegalArgumentException("Validation failed: " + String.join("; ", validationErrors));
+        }
 
         BatchPatientResponse response = patientService.registerPatients(requests);
 
@@ -69,6 +86,15 @@ public class PatientController implements PatientManagementApi {
 
     @Override
     public ResponseEntity<PatientResponse> updatePatient(Long id, PatientRegistrationRequest request) {
+        // Validate insurance fields for update
+        if (request != null) {
+            List<String> missingFields = PatientValidator.validateInsurance(request.getInsurance());
+            if (!missingFields.isEmpty()) {
+                throw new IllegalArgumentException("Validation failed: missing " + String.join(",", missingFields));
+            }
+        }
+
+        assert request != null;
         return ResponseEntity.ok(patientService.updatePatient(id, request));
     }
 

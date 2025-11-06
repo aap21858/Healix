@@ -36,6 +36,8 @@ tags:
     description: Insurance scheme reference data
   - name: Staff Management
     description: Staff/Admin user management
+  - name: Dropdown Lookup
+    description: Generic dropdown/lookup reference data management
 
 # ============================================
 # PATHS (API Endpoints)
@@ -590,6 +592,214 @@ paths:
                 type: string
                 format: binary
 
+  # ==================== Dropdown Lookup ====================
+  /api/dropdowns:
+    post:
+      tags:
+        - Dropdown Lookup
+      summary: Create multiple dropdown lookup entries
+      description: Insert multiple lookup records (bulk). Each record must contain type and code.
+      operationId: createDropdowns
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/DropdownLookupRequest'
+              minItems: 1
+              maxItems: 500
+      responses:
+        '201':
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DropdownLookupResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Dropdown Lookup
+      summary: Get all dropdown entries
+      description: Retrieve all dropdown lookup entries
+      operationId: getAllDropdowns
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DropdownLookupResponse'
+
+  /api/dropdowns/type/{type}:
+    get:
+      tags:
+        - Dropdown Lookup
+      summary: Get dropdown values by type
+      description: Retrieve dropdown lookup entries for a given type. Use query param 'active' to filter only active values.
+      operationId: getDropdownsByType
+      parameters:
+        - name: type
+          in: path
+          required: true
+          description: Lookup type (e.g., INSURANCE_SCHEME, GENDER)
+          schema:
+            type: string
+            example: "INSURANCE_SCHEME"
+        - name: active
+          in: query
+          required: false
+          description: When true, only active entries are returned. When false, only inactive entries. If omitted, returns all.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DropdownLookupResponse'
+        '404':
+          description: No entries found for the given type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/dropdowns/{id}:
+    get:
+      tags:
+        - Dropdown Lookup
+      summary: Get dropdown by ID
+      description: Retrieve a specific dropdown lookup entry by its ID
+      operationId: getDropdownById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Dropdown lookup ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DropdownLookupResponse'
+        '404':
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Dropdown Lookup
+      summary: Update dropdown lookup entry
+      description: Update an existing dropdown lookup entry
+      operationId: updateDropdown
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Dropdown lookup ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DropdownLookupRequest'
+      responses:
+        '200':
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DropdownLookupResponse'
+        '404':
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Dropdown Lookup
+      summary: Partially update dropdown lookup entry
+      description: Update specific fields of an existing dropdown lookup entry
+      operationId: patchDropdown
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Dropdown lookup ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DropdownLookupResponse'
+        '404':
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Dropdown Lookup
+      summary: Delete dropdown lookup entry
+      description: Permanently delete a dropdown lookup entry
+      operationId: deleteDropdownById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Dropdown lookup ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Deleted successfully
+        '404':
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 # ============================================
 # COMPONENTS (Schemas, Parameters, etc.)
 # ============================================
@@ -1416,3 +1626,65 @@ components:
               description: List of successfully registered patients
               items:
                 $ref: '#/components/schemas/PatientResponse'
+
+    # ==================== Dropdown Lookup Models ====================
+    DropdownLookupRequest:
+      type: object
+      required:
+        - type
+        - code
+      properties:
+        type:
+          type: string
+          description: Category/type of the lookup value
+          example: "INSURANCE_SCHEME"
+          maxLength: 50
+        code:
+          type: string
+          description: Unique code within the type
+          example: "PMJAY"
+          maxLength: 50
+        description:
+          type: string
+          description: Human readable description
+          example: "Pradhan Mantri Jan Arogya Yojana (PM-JAY)"
+          maxLength: 200
+        active:
+          type: boolean
+          description: Whether the value is active
+          default: true
+        displayOrder:
+          type: integer
+          description: Order for display in lists
+          minimum: 0
+          default: 0
+          example: 1
+
+    DropdownLookupResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        type:
+          type: string
+          example: "INSURANCE_SCHEME"
+        code:
+          type: string
+          example: "PMJAY"
+        description:
+          type: string
+          example: "Pradhan Mantri Jan Arogya Yojana (PM-JAY)"
+        active:
+          type: boolean
+          example: true
+        displayOrder:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

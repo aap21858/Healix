@@ -35,7 +35,7 @@ public class PatientInsurance {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scheme_id")
-    private InsuranceScheme scheme;
+    private DropdownLookup scheme;
 
     @Column(name = "policy_card_number", length = 50)
     private String policyCardNumber;
