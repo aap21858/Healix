@@ -298,6 +298,37 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
+  /api/patients/{id}/activate:
+    patch:
+      tags:
+        - Patient Management
+      summary: Activate patient by ID
+      description: Set patient status to ACTIVE
+      operationId: activatePatient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Patient database ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Patient activated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientResponse'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /api/patients/patient-id/{patientId}:
     get:
       tags:
@@ -1123,11 +1154,15 @@ components:
       type: object
       properties:
         knownAllergies:
-          type: string
-          example: "Penicillin, Peanuts"
+          type: array
+          items:
+            type: string
+          example: ["Penicillin", "Peanuts"]
         currentMedications:
-          type: string
-          example: "Metformin 500mg twice daily"
+          type: array
+          items:
+            type: string
+          example: ["Metformin 500mg twice daily", "Aspirin 75mg"]
         pastSurgeries:
           type: string
           example: "Appendectomy (2010)"
@@ -1281,9 +1316,13 @@ components:
           type: integer
           format: int64
         knownAllergies:
-          type: string
+          type: array
+          items:
+            type: string
         currentMedications:
-          type: string
+          type: array
+          items:
+            type: string
         pastSurgeries:
           type: string
         chronicConditions:

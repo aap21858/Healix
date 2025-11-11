@@ -1,8 +1,11 @@
 package com.healix.entity;
 
+import com.healix.util.StringListConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "patient_medical_history")
@@ -22,14 +25,14 @@ public class PatientMedicalHistory {
     private Patient patient;
 
     @Column(name = "known_allergies", columnDefinition = "TEXT")
-    private String knownAllergies;
-
-    @Column(name = "has_allergies")
+    @Convert(converter = StringListConverter.class)
     @Builder.Default
-    private Boolean hasAllergies = false;
+    private List<String> knownAllergies = new ArrayList<>();
 
     @Column(name = "current_medications", columnDefinition = "TEXT")
-    private String currentMedications;
+    @Convert(converter = StringListConverter.class)
+    @Builder.Default
+    private List<String> currentMedications = new ArrayList<>();
 
     @Column(name = "past_surgeries", columnDefinition = "TEXT")
     private String pastSurgeries;

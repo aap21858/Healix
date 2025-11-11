@@ -230,6 +230,22 @@ public class PatientService {
     }
 
     /**
+     * Activate patient (set status to ACTIVE)
+     */
+    public PatientResponse activatePatient(Long id) {
+        log.debug("Activating patient with id: {}", id);
+
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient", "id", id));
+
+        patient.setStatus(PatientStatus.ACTIVE);
+        Patient saved = patientRepository.save(patient);
+
+        log.info("Patient activated successfully: {}", saved.getPatientId());
+        return mapToResponse(saved);
+    }
+
+    /**
      * Get all patients (paginated)
      */
     public Page<PatientResponse> getAllPatients(Pageable pageable) {
@@ -283,4 +299,3 @@ public class PatientService {
         }
     }
 }
-

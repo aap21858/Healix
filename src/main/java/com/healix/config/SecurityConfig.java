@@ -75,7 +75,7 @@ public class SecurityConfig {
         // Explicitly allow only frontend origin
         configuration.setAllowedOrigins(List.of(frontEndBaseUrl));
 
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 
         configuration.setAllowCredentials(true); // must be true to allow cookies/headers

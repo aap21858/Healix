@@ -101,7 +101,7 @@ public class PatientController implements PatientManagementApi {
     @Override
     public ResponseEntity<Void> deletePatient(Long id) {
         patientService.deletePatient(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 
     @Override
@@ -138,6 +138,13 @@ public class PatientController implements PatientManagementApi {
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .contentLength(resource.contentLength())
                 .body(resource);
+    }
+
+    @Override
+    public ResponseEntity<PatientResponse> activatePatient(Long id) {
+        // Activate (set status to ACTIVE) and return the updated patient
+        PatientResponse response = patientService.activatePatient(id);
+        return ResponseEntity.ok(response);
     }
 
     private Pageable createPageable(Integer page, Integer size, String sort) {

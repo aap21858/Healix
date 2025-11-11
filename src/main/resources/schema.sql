@@ -125,8 +125,8 @@ CREATE TABLE patient_medical_history (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     patient_id BIGINT NOT NULL,
 
-    known_allergies TEXT, -- JSON array or comma-separated
-    current_medications TEXT,
+    known_allergies TEXT, -- JSON array of strings
+    current_medications TEXT, -- JSON array of strings
     past_surgeries TEXT,
     chronic_conditions TEXT,
     family_medical_history TEXT,
@@ -200,8 +200,8 @@ INSERT INTO patient_insurance (patient_id, has_insurance, insurance_type, scheme
 
 -- Sample Medical History
 INSERT INTO patient_medical_history (patient_id, known_allergies, current_medications) VALUES
-(1, 'Penicillin, Peanuts', 'Metformin 500mg'),
-(2, 'None Known', 'None');
+(1, '["Penicillin", "Peanuts"]', '["Metformin 500mg"]'),
+(2, '[]', '[]');
 
 -- Create indexes for performance
 CREATE INDEX idx_patient_mobile ON patients(mobile_number);
