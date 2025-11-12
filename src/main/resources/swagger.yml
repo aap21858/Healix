@@ -38,6 +38,8 @@ tags:
     description: Staff/Admin user management
   - name: Dropdown Lookup
     description: Generic dropdown/lookup reference data management
+  - name: Appointment Management
+    description: Appointment scheduling, triage, consultation, prescriptions, and IPD management
 
 # ============================================
 # PATHS (API Endpoints)
@@ -831,6 +833,667 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== Appointment Management ====================
+  /api/appointments:
+    post:
+      tags:
+        - Appointment Management
+      summary: Create new appointment
+      description: Schedule a new OPD or IPD appointment
+      operationId: createAppointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentRequest'
+      responses:
+        '201':
+          description: Appointment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    get:
+      tags:
+        - Appointment Management
+      summary: Get all appointments
+      description: Retrieve all appointments with pagination
+      operationId: getAllAppointments
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - $ref: '#/components/parameters/SortParam'
+      responses:
+        '200':
+          description: Appointments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentPageResponse'
+
+  /api/appointments/{id}:
+    get:
+      tags:
+        - Appointment Management
+      summary: Get appointment by ID
+      description: Retrieve detailed appointment information
+      operationId: getAppointmentById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Appointment ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Appointment found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentDetailResponse'
+        '404':
+          description: Appointment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Appointment Management
+      summary: Update appointment
+      description: Update existing appointment details
+      operationId: updateAppointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentRequest'
+      responses:
+        '200':
+          description: Appointment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '404':
+          description: Appointment not found
+
+    delete:
+      tags:
+        - Appointment Management
+      summary: Cancel appointment
+      description: Cancel an appointment
+      operationId: cancelAppointment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Appointment cancelled successfully
+        '404':
+          description: Appointment not found
+
+  /api/appointments/search:
+    get:
+      tags:
+        - Appointment Management
+      summary: Search appointments
+      description: Search appointments by patient name, ID, contact, date, physician, or status
+      operationId: searchAppointments
+      parameters:
+        - name: patientName
+          in: query
+          description: Patient name (partial match)
+          schema:
+            type: string
+        - name: patientId
+          in: query
+          description: Patient ID
+          schema:
+            type: integer
+            format: int64
+        - name: contactNumber
+          in: query
+          description: Patient contact number
+          schema:
+            type: string
+        - name: appointmentDate
+          in: query
+          description: Appointment date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: physicianId
+          in: query
+          description: Physician ID
+          schema:
+            type: integer
+            format: int64
+        - name: status
+          in: query
+          description: Appointment status
+          schema:
+            $ref: '#/components/schemas/AppointmentStatus'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentPageResponse'
+
+  /api/appointments/{id}/status:
+    patch:
+      tags:
+        - Appointment Management
+      summary: Update appointment status
+      description: Change appointment status (e.g., WAITING, IN_CONSULTATION, etc.)
+      operationId: updateAppointmentStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  $ref: '#/components/schemas/AppointmentStatus'
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '404':
+          description: Appointment not found
+
+  # ==================== Triage Management ====================
+  /api/appointments/{appointmentId}/triage:
+    post:
+      tags:
+        - Appointment Management
+      summary: Create or update triage data
+      description: Record pre-consultation assessment by nurse or junior doctor
+      operationId: createOrUpdateTriage
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriageRequest'
+      responses:
+        '201':
+          description: Triage data recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageResponse'
+        '404':
+          description: Appointment not found
+
+    get:
+      tags:
+        - Appointment Management
+      summary: Get triage data
+      description: Retrieve triage data for an appointment
+      operationId: getTriageByAppointment
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Triage data retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageResponse'
+        '404':
+          description: Triage data not found
+
+  # ==================== Vitals Management ====================
+  /api/appointments/{appointmentId}/vitals:
+    post:
+      tags:
+        - Appointment Management
+      summary: Record vitals
+      description: Record patient vitals during triage
+      operationId: recordVitals
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VitalsRequest'
+      responses:
+        '201':
+          description: Vitals recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VitalsResponse'
+        '404':
+          description: Appointment not found
+
+    get:
+      tags:
+        - Appointment Management
+      summary: Get vitals
+      description: Retrieve all vitals records for an appointment
+      operationId: getVitalsByAppointment
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Vitals retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VitalsResponse'
+
+  # ==================== Examination Management ====================
+  /api/appointments/{appointmentId}/examination:
+    post:
+      tags:
+        - Appointment Management
+      summary: Record examination
+      description: Record doctor's examination findings and diagnosis
+      operationId: recordExamination
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExaminationRequest'
+      responses:
+        '201':
+          description: Examination recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExaminationResponse'
+        '404':
+          description: Appointment not found
+
+    get:
+      tags:
+        - Appointment Management
+      summary: Get examination
+      description: Retrieve examination data for an appointment
+      operationId: getExaminationByAppointment
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Examination retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExaminationResponse'
+        '404':
+          description: Examination not found
+
+  # ==================== Prescription Management ====================
+  /api/appointments/{appointmentId}/prescriptions:
+    post:
+      tags:
+        - Appointment Management
+      summary: Create prescription
+      description: Create prescription with medication items
+      operationId: createPrescription
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrescriptionRequest'
+      responses:
+        '201':
+          description: Prescription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriptionResponse'
+        '404':
+          description: Appointment not found
+
+    get:
+      tags:
+        - Appointment Management
+      summary: Get prescriptions
+      description: Retrieve all prescriptions for an appointment
+      operationId: getPrescriptionsByAppointment
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Prescriptions retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PrescriptionResponse'
+
+  /api/prescriptions/{id}:
+    get:
+      tags:
+        - Appointment Management
+      summary: Get prescription by ID
+      description: Retrieve prescription details
+      operationId: getPrescriptionById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Prescription found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriptionResponse'
+        '404':
+          description: Prescription not found
+
+  /api/prescriptions/{id}/status:
+    patch:
+      tags:
+        - Appointment Management
+      summary: Update prescription status
+      description: Change prescription status (DRAFT, PRESCRIBED, DISPENSED)
+      operationId: updatePrescriptionStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  $ref: '#/components/schemas/PrescriptionStatus'
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriptionResponse'
+
+  # ==================== Investigation Orders ====================
+  /api/appointments/{appointmentId}/investigations:
+    post:
+      tags:
+        - Appointment Management
+      summary: Create investigation order
+      description: Order pathology or radiology investigation
+      operationId: createInvestigationOrder
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvestigationOrderRequest'
+      responses:
+        '201':
+          description: Investigation ordered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestigationOrderResponse'
+        '404':
+          description: Appointment not found
+
+    get:
+      tags:
+        - Appointment Management
+      summary: Get investigation orders
+      description: Retrieve all investigation orders for an appointment
+      operationId: getInvestigationsByAppointment
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Investigations retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InvestigationOrderResponse'
+
+  /api/investigations/{id}/result:
+    patch:
+      tags:
+        - Appointment Management
+      summary: Update investigation result
+      description: Record investigation result and report
+      operationId: updateInvestigationResult
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvestigationResultRequest'
+      responses:
+        '200':
+          description: Result updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestigationOrderResponse'
+
+  # ==================== Referral Management ====================
+  /api/appointments/{appointmentId}/refer:
+    post:
+      tags:
+        - Appointment Management
+      summary: Create referral
+      description: Refer patient to another department or physician
+      operationId: createReferral
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReferralRequest'
+      responses:
+        '201':
+          description: Referral created and new appointment scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '404':
+          description: Appointment not found
+
+  # ==================== IPD Management ====================
+  /api/appointments/{appointmentId}/admit:
+    post:
+      tags:
+        - Appointment Management
+      summary: Admit patient (Convert OPD to IPD)
+      description: Admit patient for inpatient care, allocate bed
+      operationId: admitPatient
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmitRequest'
+      responses:
+        '200':
+          description: Patient admitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '404':
+          description: Appointment not found
+        '400':
+          description: Invalid admission request (e.g., already admitted, bed unavailable)
+
+  /api/appointments/{appointmentId}/discharge:
+    post:
+      tags:
+        - Appointment Management
+      summary: Discharge patient
+      description: Discharge patient from IPD
+      operationId: dischargePatient
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DischargeRequest'
+      responses:
+        '200':
+          description: Patient discharged successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentResponse'
+        '404':
+          description: Appointment not found
+
 # ============================================
 # COMPONENTS (Schemas, Parameters, etc.)
 # ============================================
@@ -1727,3 +2390,707 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    # ==================== Appointment Management Models ====================
+
+    AppointmentStatus:
+      type: string
+      enum:
+        - DRAFT
+        - CONFIRMED
+        - WAITING
+        - IN_TRIAGE
+        - IN_CONSULTATION
+        - TO_INVOICE
+        - COMPLETED
+        - CANCELLED
+        - NO_SHOW
+        - ADMITTED
+        - IN_TREATMENT
+        - DISCHARGE_READY
+        - DISCHARGED
+      example: CONFIRMED
+
+    AppointmentType:
+      type: string
+      enum:
+        - OPD
+        - IPD
+      example: OPD
+
+    UrgencyLevel:
+      type: string
+      enum:
+        - NORMAL
+        - URGENT
+        - EMERGENCY
+      example: NORMAL
+
+    AppointmentRequest:
+      type: object
+      required:
+        - patientId
+        - appointmentDate
+        - appointmentTime
+        - physicianId
+      properties:
+        patientId:
+          type: integer
+          format: int64
+          example: 1
+        appointmentType:
+          $ref: '#/components/schemas/AppointmentType'
+        appointmentDate:
+          type: string
+          format: date
+          example: "2025-11-15"
+        appointmentTime:
+          type: string
+          pattern: '^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$'
+          example: "10:30:00"
+        duration:
+          type: integer
+          description: Duration in minutes
+          default: 30
+          example: 30
+        departmentId:
+          type: integer
+          format: int64
+          example: 101
+        physicianId:
+          type: integer
+          format: int64
+          example: 5
+        consultationRoom:
+          type: string
+          maxLength: 50
+          example: "Room 203"
+        urgencyLevel:
+          $ref: '#/components/schemas/UrgencyLevel'
+        chiefComplaint:
+          type: string
+          example: "Fever and cough for 3 days"
+        notes:
+          type: string
+          example: "Patient has a history of asthma"
+
+    AppointmentResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        appointmentNumber:
+          type: string
+          example: "APT-20251115-00001"
+        patientId:
+          type: integer
+          format: int64
+        patientName:
+          type: string
+          example: "John Doe"
+        appointmentType:
+          $ref: '#/components/schemas/AppointmentType'
+        appointmentDate:
+          type: string
+          format: date
+        appointmentTime:
+          type: string
+        duration:
+          type: integer
+        physicianId:
+          type: integer
+          format: int64
+        physicianName:
+          type: string
+          example: "Dr. Smith"
+        departmentId:
+          type: integer
+          format: int64
+        departmentName:
+          type: string
+          example: "General Medicine"
+        consultationRoom:
+          type: string
+        urgencyLevel:
+          $ref: '#/components/schemas/UrgencyLevel'
+        status:
+          $ref: '#/components/schemas/AppointmentStatus'
+        chiefComplaint:
+          type: string
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AppointmentDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/AppointmentResponse'
+        - type: object
+          properties:
+            patient:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  format: int64
+                name:
+                  type: string
+                age:
+                  type: integer
+                gender:
+                  type: string
+                contactNumber:
+                  type: string
+            triage:
+              $ref: '#/components/schemas/TriageResponse'
+            vitals:
+              type: array
+              items:
+                $ref: '#/components/schemas/VitalsResponse'
+            examination:
+              $ref: '#/components/schemas/ExaminationResponse'
+            prescriptions:
+              type: array
+              items:
+                $ref: '#/components/schemas/PrescriptionResponse'
+            investigations:
+              type: array
+              items:
+                $ref: '#/components/schemas/InvestigationOrderResponse'
+
+    AppointmentPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        currentPage:
+          type: integer
+        size:
+          type: integer
+
+    TriageRequest:
+      type: object
+      properties:
+        chiefComplaints:
+          type: string
+          example: "High fever and dry cough"
+        historyPresentIllness:
+          type: string
+          example: "Fever started 3 days ago, cough since yesterday"
+        pastMedicalHistory:
+          type: string
+          example: "Asthma diagnosed 5 years ago"
+        familyHistory:
+          type: string
+        allergies:
+          type: string
+          example: "Penicillin"
+        currentMedications:
+          type: string
+          example: "Salbutamol inhaler"
+        socialHistory:
+          type: string
+        notes:
+          type: string
+          example: "Patient appears distressed"
+
+    TriageResponse:
+      allOf:
+        - $ref: '#/components/schemas/TriageRequest'
+        - type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+            appointmentId:
+              type: integer
+              format: int64
+            recordedBy:
+              type: integer
+              format: int64
+            recordedByName:
+              type: string
+            recordedAt:
+              type: string
+              format: date-time
+
+    VitalsRequest:
+      type: object
+      properties:
+        weight:
+          type: number
+          format: double
+          description: Weight in kg
+          example: 70.5
+        height:
+          type: number
+          format: double
+          description: Height in cm
+          example: 175
+        headCircumference:
+          type: number
+          format: double
+          description: Head circumference in cm (pediatric)
+        temperature:
+          type: number
+          format: double
+          example: 101.5
+        temperatureUnit:
+          type: string
+          enum: [F, C]
+          default: F
+        heartRate:
+          type: integer
+          description: Heart rate in bpm
+          example: 88
+        respiratoryRate:
+          type: integer
+          description: Respiratory rate in breaths/min
+          example: 18
+        systolicBp:
+          type: integer
+          description: Systolic BP in mmHg
+          example: 120
+        diastolicBp:
+          type: integer
+          description: Diastolic BP in mmHg
+          example: 80
+        spo2:
+          type: number
+          format: double
+          description: Oxygen saturation %
+          example: 96
+        randomBloodSugar:
+          type: number
+          format: double
+          description: RBS in mg/dL
+          example: 110
+        bmi:
+          type: number
+          format: double
+          description: Body Mass Index
+        bmiStatus:
+          type: string
+          enum: [Underweight, Normal, Overweight, Obese]
+        painLevel:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: Pain level on 0-10 scale
+          example: 3
+        symptoms:
+          type: array
+          items:
+            type: string
+          example: ["Fever", "Cough", "Headache"]
+
+    VitalsResponse:
+      allOf:
+        - $ref: '#/components/schemas/VitalsRequest'
+        - type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+            appointmentId:
+              type: integer
+              format: int64
+            recordedBy:
+              type: integer
+              format: int64
+            recordedByName:
+              type: string
+            recordedAt:
+              type: string
+              format: date-time
+
+    ExaminationRequest:
+      type: object
+      properties:
+        generalAppearance:
+          type: string
+          example: "Patient is alert and oriented"
+        cardiovascularSystem:
+          type: string
+          example: "S1 S2 heard, no murmurs"
+        respiratorySystem:
+          type: string
+          example: "Bilateral air entry equal, no added sounds"
+        gastrointestinalSystem:
+          type: string
+        centralNervousSystem:
+          type: string
+        musculoskeletalSystem:
+          type: string
+        examinationFindings:
+          type: string
+          example: "Mild tachycardia, temperature elevated"
+        primaryDiagnosis:
+          type: string
+          example: "Upper Respiratory Tract Infection"
+        primaryDiagnosisIcd10:
+          type: string
+          example: "J06.9"
+        differentialDiagnosis:
+          type: string
+          example: "Pneumonia, Bronchitis"
+        treatmentPlan:
+          type: string
+          example: "Antipyretics, antibiotics, rest"
+        advice:
+          type: string
+          example: "Drink plenty of fluids, avoid cold beverages"
+        followUpDate:
+          type: string
+          format: date
+          example: "2025-11-20"
+        followUpInstructions:
+          type: string
+          example: "Return if fever persists beyond 3 days"
+
+    ExaminationResponse:
+      allOf:
+        - $ref: '#/components/schemas/ExaminationRequest'
+        - type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+            appointmentId:
+              type: integer
+              format: int64
+            examinedBy:
+              type: integer
+              format: int64
+            examinedByName:
+              type: string
+            examinedAt:
+              type: string
+              format: date-time
+
+    PrescriptionStatus:
+      type: string
+      enum:
+        - DRAFT
+        - PRESCRIBED
+        - DISPENSED
+      example: PRESCRIBED
+
+    PrescriptionRequest:
+      type: object
+      required:
+        - diagnosis
+        - items
+      properties:
+        diagnosis:
+          type: string
+          example: "Upper Respiratory Tract Infection"
+        medicationGroup:
+          type: string
+          example: "Antibiotics & Antipyretics"
+        instructions:
+          type: string
+          example: "Complete the full course of antibiotics"
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PrescriptionItemRequest'
+
+    PrescriptionItemRequest:
+      type: object
+      required:
+        - medicineName
+        - dosage
+        - form
+      properties:
+        medicineName:
+          type: string
+          example: "Amoxicillin"
+        genericName:
+          type: string
+          example: "Amoxicillin"
+        dosage:
+          type: string
+          example: "500mg"
+        form:
+          type: string
+          enum: [Tablet, Syrup, Injection, Capsule, Ointment, Drops]
+          example: "Tablet"
+        frequency:
+          type: string
+          description: Dosing frequency (e.g., 1-0-1 for Morning-Afternoon-Night)
+          example: "1-0-1"
+        duration:
+          type: integer
+          description: Treatment duration
+          example: 5
+        durationUnit:
+          type: string
+          enum: [DAYS, WEEKS, MONTHS]
+          default: DAYS
+          example: "DAYS"
+        route:
+          type: string
+          enum: [Oral, IV, IM, Topical, Inhalation]
+          example: "Oral"
+        instructions:
+          type: string
+          example: "After meals"
+        quantity:
+          type: integer
+          example: 10
+
+    PrescriptionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        prescriptionNumber:
+          type: string
+          example: "RX-20251115-00001"
+        appointmentId:
+          type: integer
+          format: int64
+        patientId:
+          type: integer
+          format: int64
+        patientName:
+          type: string
+        physicianId:
+          type: integer
+          format: int64
+        physicianName:
+          type: string
+        diagnosis:
+          type: string
+        prescriptionDate:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/PrescriptionStatus'
+        medicationGroup:
+          type: string
+        instructions:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrescriptionItemResponse'
+        createdAt:
+          type: string
+          format: date-time
+        dispensedAt:
+          type: string
+          format: date-time
+
+    PrescriptionItemResponse:
+      allOf:
+        - $ref: '#/components/schemas/PrescriptionItemRequest'
+        - type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+
+    InvestigationOrderType:
+      type: string
+      enum:
+        - PATHOLOGY
+        - RADIOLOGY
+      example: PATHOLOGY
+
+    InvestigationOrderStatus:
+      type: string
+      enum:
+        - ORDERED
+        - SAMPLE_COLLECTED
+        - IN_PROGRESS
+        - COMPLETED
+        - CANCELLED
+      example: ORDERED
+
+    InvestigationUrgency:
+      type: string
+      enum:
+        - ROUTINE
+        - URGENT
+        - STAT
+      example: ROUTINE
+
+    InvestigationResultStatus:
+      type: string
+      enum:
+        - NORMAL
+        - ABNORMAL
+        - CRITICAL
+      example: NORMAL
+
+    InvestigationOrderRequest:
+      type: object
+      required:
+        - orderType
+        - testName
+      properties:
+        orderType:
+          $ref: '#/components/schemas/InvestigationOrderType'
+        testName:
+          type: string
+          example: "Complete Blood Count"
+        testCode:
+          type: string
+          example: "CBC"
+        clinicalNotes:
+          type: string
+          example: "Fever investigation"
+        urgency:
+          $ref: '#/components/schemas/InvestigationUrgency'
+
+    InvestigationResultRequest:
+      type: object
+      properties:
+        resultValue:
+          type: string
+          example: "WBC: 12000, Hb: 13.5"
+        resultUnit:
+          type: string
+        resultStatus:
+          $ref: '#/components/schemas/InvestigationResultStatus'
+        resultNotes:
+          type: string
+          example: "Leukocytosis noted"
+        resultReportUrl:
+          type: string
+          format: uri
+          example: "https://reports.healix.com/inv-123.pdf"
+
+    InvestigationOrderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        orderNumber:
+          type: string
+          example: "INV-20251115-00001"
+        appointmentId:
+          type: integer
+          format: int64
+        patientId:
+          type: integer
+          format: int64
+        patientName:
+          type: string
+        orderedBy:
+          type: integer
+          format: int64
+        orderedByName:
+          type: string
+        orderType:
+          $ref: '#/components/schemas/InvestigationOrderType'
+        testName:
+          type: string
+        testCode:
+          type: string
+        status:
+          $ref: '#/components/schemas/InvestigationOrderStatus'
+        clinicalNotes:
+          type: string
+        urgency:
+          $ref: '#/components/schemas/InvestigationUrgency'
+        resultValue:
+          type: string
+        resultUnit:
+          type: string
+        resultStatus:
+          $ref: '#/components/schemas/InvestigationResultStatus'
+        resultReportUrl:
+          type: string
+        resultNotes:
+          type: string
+        orderedAt:
+          type: string
+          format: date-time
+        sampleCollectedAt:
+          type: string
+          format: date-time
+        resultReportedAt:
+          type: string
+          format: date-time
+        reportedBy:
+          type: integer
+          format: int64
+        reportedByName:
+          type: string
+
+    ReferralRequest:
+      type: object
+      required:
+        - referredToDepartmentId
+      properties:
+        referralType:
+          type: string
+          enum: [INTERNAL, EXTERNAL]
+          default: INTERNAL
+          example: "INTERNAL"
+        referredToDepartmentId:
+          type: integer
+          format: int64
+          example: 105
+        referredToPhysicianId:
+          type: integer
+          format: int64
+          example: 12
+        referralReason:
+          type: string
+          example: "Cardiology consultation required"
+        clinicalSummary:
+          type: string
+          example: "Patient has chest pain, needs ECG and echo"
+
+    AdmitRequest:
+      type: object
+      required:
+        - bedId
+      properties:
+        bedId:
+          type: integer
+          format: int64
+          example: 205
+        admissionNotes:
+          type: string
+          example: "Patient admitted for observation and IV antibiotics"
+        estimatedDischargeDate:
+          type: string
+          format: date-time
+          example: "2025-11-20T12:00:00"
+
+    DischargeRequest:
+      type: object
+      required:
+        - dischargeSummary
+      properties:
+        dischargeSummary:
+          type: string
+          example: "Patient improved, vitals stable"
+        dischargeInstructions:
+          type: string
+          example: "Continue oral medications for 5 days"
+        followUpDate:
+          type: string
+          format: date
+          example: "2025-11-25"
+

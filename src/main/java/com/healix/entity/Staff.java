@@ -1,6 +1,5 @@
 package com.healix.entity;
 
-import com.healix.enums.ROLE;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
