@@ -1,0 +1,701 @@
+AppointmentStatus:
+  type: string
+  enum:
+    - DRAFT
+    - CONFIRMED
+    - WAITING
+    - IN_TRIAGE
+    - IN_CONSULTATION
+    - TO_INVOICE
+    - COMPLETED
+    - CANCELLED
+    - NO_SHOW
+    - ADMITTED
+    - IN_TREATMENT
+    - DISCHARGE_READY
+    - DISCHARGED
+  example: CONFIRMED
+
+AppointmentType:
+  type: string
+  enum:
+    - OPD
+    - IPD
+  example: OPD
+
+UrgencyLevel:
+  type: string
+  enum:
+    - NORMAL
+    - URGENT
+    - EMERGENCY
+  example: NORMAL
+
+AppointmentRequest:
+  type: object
+  required:
+    - patientId
+    - appointmentDate
+    - appointmentTime
+    - physicianId
+  properties:
+    patientId:
+      type: integer
+      format: int64
+      example: 1
+    appointmentType:
+      $ref: '#/AppointmentType'
+    appointmentDate:
+      type: string
+      format: date
+      example: "2025-11-15"
+    appointmentTime:
+      type: string
+      pattern: '^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$'
+      example: "10:30:00"
+    duration:
+      type: integer
+      description: Duration in minutes
+      default: 30
+      example: 30
+    departmentId:
+      type: integer
+      format: int64
+      example: 101
+    physicianId:
+      type: integer
+      format: int64
+      example: 5
+    consultationRoom:
+      type: string
+      maxLength: 50
+      example: "Room 203"
+    urgencyLevel:
+      $ref: '#/UrgencyLevel'
+    chiefComplaint:
+      type: string
+      example: "Fever and cough for 3 days"
+    notes:
+      type: string
+      example: "Patient has a history of asthma"
+
+AppointmentResponse:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+    appointmentNumber:
+      type: string
+      example: "APT-20251115-00001"
+    patientId:
+      type: integer
+      format: int64
+    patientName:
+      type: string
+      example: "John Doe"
+    appointmentType:
+      $ref: '#/AppointmentType'
+    appointmentDate:
+      type: string
+      format: date
+    appointmentTime:
+      type: string
+    duration:
+      type: integer
+    physicianId:
+      type: integer
+      format: int64
+    physicianName:
+      type: string
+      example: "Dr. Smith"
+    departmentId:
+      type: integer
+      format: int64
+    departmentName:
+      type: string
+      example: "General Medicine"
+    consultationRoom:
+      type: string
+    urgencyLevel:
+      $ref: '#/UrgencyLevel'
+    status:
+      $ref: '#/AppointmentStatus'
+    chiefComplaint:
+      type: string
+    notes:
+      type: string
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+
+AppointmentDetailResponse:
+  allOf:
+    - $ref: '#/AppointmentResponse'
+    - type: object
+      properties:
+        patient:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+            name:
+              type: string
+            age:
+              type: integer
+            gender:
+              type: string
+            contactNumber:
+              type: string
+        triage:
+          $ref: '#/TriageResponse'
+        vitals:
+          type: array
+          items:
+            $ref: '#/VitalsResponse'
+        examination:
+          $ref: '#/ExaminationResponse'
+        prescriptions:
+          type: array
+          items:
+            $ref: '#/PrescriptionResponse'
+        investigations:
+          type: array
+          items:
+            $ref: '#/InvestigationOrderResponse'
+
+AppointmentPageResponse:
+  type: object
+  properties:
+    content:
+      type: array
+      items:
+        $ref: '#/AppointmentResponse'
+    totalElements:
+      type: integer
+      format: int64
+    totalPages:
+      type: integer
+    currentPage:
+      type: integer
+    size:
+      type: integer
+
+TriageRequest:
+  type: object
+  properties:
+    chiefComplaints:
+      type: string
+      example: "High fever and dry cough"
+    historyPresentIllness:
+      type: string
+      example: "Fever started 3 days ago, cough since yesterday"
+    pastMedicalHistory:
+      type: string
+      example: "Asthma diagnosed 5 years ago"
+    familyHistory:
+      type: string
+    allergies:
+      type: string
+      example: "Penicillin"
+    currentMedications:
+      type: string
+      example: "Salbutamol inhaler"
+    socialHistory:
+      type: string
+    notes:
+      type: string
+      example: "Patient appears distressed"
+
+TriageResponse:
+  allOf:
+    - $ref: '#/TriageRequest'
+    - type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        appointmentId:
+          type: integer
+          format: int64
+        recordedBy:
+          type: integer
+          format: int64
+        recordedByName:
+          type: string
+        recordedAt:
+          type: string
+          format: date-time
+
+VitalsRequest:
+  type: object
+  properties:
+    weight:
+      type: number
+      format: double
+      description: Weight in kg
+      example: 70.5
+    height:
+      type: number
+      format: double
+      description: Height in cm
+      example: 175
+    headCircumference:
+      type: number
+      format: double
+      description: Head circumference in cm (pediatric)
+    temperature:
+      type: number
+      format: double
+      example: 101.5
+    temperatureUnit:
+      type: string
+      enum: [F, C]
+      default: F
+    heartRate:
+      type: integer
+      description: Heart rate in bpm
+      example: 88
+    respiratoryRate:
+      type: integer
+      description: Respiratory rate in breaths/min
+      example: 18
+    systolicBp:
+      type: integer
+      description: Systolic BP in mmHg
+      example: 120
+    diastolicBp:
+      type: integer
+      description: Diastolic BP in mmHg
+      example: 80
+    spo2:
+      type: number
+      format: double
+      description: Oxygen saturation %
+      example: 96
+    randomBloodSugar:
+      type: number
+      format: double
+      description: RBS in mg/dL
+      example: 110
+    bmi:
+      type: number
+      format: double
+      description: Body Mass Index
+    bmiStatus:
+      type: string
+      enum: [Underweight, Normal, Overweight, Obese]
+    painLevel:
+      type: integer
+      minimum: 0
+      maximum: 10
+      description: Pain level on 0-10 scale
+      example: 3
+    symptoms:
+      type: array
+      items:
+        type: string
+      example: ["Fever", "Cough", "Headache"]
+
+VitalsResponse:
+  allOf:
+    - $ref: '#/VitalsRequest'
+    - type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        appointmentId:
+          type: integer
+          format: int64
+        recordedBy:
+          type: integer
+          format: int64
+        recordedByName:
+          type: string
+        recordedAt:
+          type: string
+          format: date-time
+
+ExaminationRequest:
+  type: object
+  properties:
+    generalAppearance:
+      type: string
+      example: "Patient is alert and oriented"
+    cardiovascularSystem:
+      type: string
+      example: "S1 S2 heard, no murmurs"
+    respiratorySystem:
+      type: string
+      example: "Bilateral air entry equal, no added sounds"
+    gastrointestinalSystem:
+      type: string
+    centralNervousSystem:
+      type: string
+    musculoskeletalSystem:
+      type: string
+    examinationFindings:
+      type: string
+      example: "Mild tachycardia, temperature elevated"
+    primaryDiagnosis:
+      type: string
+      example: "Upper Respiratory Tract Infection"
+    primaryDiagnosisIcd10:
+      type: string
+      example: "J06.9"
+    differentialDiagnosis:
+      type: string
+      example: "Pneumonia, Bronchitis"
+    treatmentPlan:
+      type: string
+      example: "Antipyretics, antibiotics, rest"
+    advice:
+      type: string
+      example: "Drink plenty of fluids, avoid cold beverages"
+    followUpDate:
+      type: string
+      format: date
+      example: "2025-11-20"
+    followUpInstructions:
+      type: string
+      example: "Return if fever persists beyond 3 days"
+
+ExaminationResponse:
+  allOf:
+    - $ref: '#/ExaminationRequest'
+    - type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        appointmentId:
+          type: integer
+          format: int64
+        examinedBy:
+          type: integer
+          format: int64
+        examinedByName:
+          type: string
+        examinedAt:
+          type: string
+          format: date-time
+
+PrescriptionStatus:
+  type: string
+  enum:
+    - DRAFT
+    - PRESCRIBED
+    - DISPENSED
+  example: PRESCRIBED
+
+PrescriptionRequest:
+  type: object
+  required:
+    - diagnosis
+    - items
+  properties:
+    diagnosis:
+      type: string
+      example: "Upper Respiratory Tract Infection"
+    medicationGroup:
+      type: string
+      example: "Antibiotics & Antipyretics"
+    instructions:
+      type: string
+      example: "Complete the full course of antibiotics"
+    items:
+      type: array
+      minItems: 1
+      items:
+        $ref: '#/PrescriptionItemRequest'
+
+PrescriptionItemRequest:
+  type: object
+  required:
+    - medicineName
+    - dosage
+    - form
+  properties:
+    medicineName:
+      type: string
+      example: "Amoxicillin"
+    genericName:
+      type: string
+      example: "Amoxicillin"
+    dosage:
+      type: string
+      example: "500mg"
+    form:
+      type: string
+      enum: [Tablet, Syrup, Injection, Capsule, Ointment, Drops]
+      example: "Tablet"
+    frequency:
+      type: string
+      description: Dosing frequency (e.g., 1-0-1 for Morning-Afternoon-Night)
+      example: "1-0-1"
+    duration:
+      type: integer
+      description: Treatment duration
+      example: 5
+    durationUnit:
+      type: string
+      enum: [DAYS, WEEKS, MONTHS]
+      default: DAYS
+      example: "DAYS"
+    route:
+      type: string
+      enum: [Oral, IV, IM, Topical, Inhalation]
+      example: "Oral"
+    instructions:
+      type: string
+      example: "After meals"
+    quantity:
+      type: integer
+      example: 10
+
+PrescriptionResponse:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+    prescriptionNumber:
+      type: string
+      example: "RX-20251115-00001"
+    appointmentId:
+      type: integer
+      format: int64
+    patientId:
+      type: integer
+      format: int64
+    patientName:
+      type: string
+    physicianId:
+      type: integer
+      format: int64
+    physicianName:
+      type: string
+    diagnosis:
+      type: string
+    prescriptionDate:
+      type: string
+      format: date
+    status:
+      $ref: '#/PrescriptionStatus'
+    medicationGroup:
+      type: string
+    instructions:
+      type: string
+    items:
+      type: array
+      items:
+        $ref: '#/PrescriptionItemResponse'
+    createdAt:
+      type: string
+      format: date-time
+    dispensedAt:
+      type: string
+      format: date-time
+
+PrescriptionItemResponse:
+  allOf:
+    - $ref: '#/PrescriptionItemRequest'
+    - type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+
+InvestigationOrderType:
+  type: string
+  enum:
+    - PATHOLOGY
+    - RADIOLOGY
+  example: PATHOLOGY
+
+InvestigationOrderStatus:
+  type: string
+  enum:
+    - ORDERED
+    - SAMPLE_COLLECTED
+    - IN_PROGRESS
+    - COMPLETED
+    - CANCELLED
+  example: ORDERED
+
+InvestigationUrgency:
+  type: string
+  enum:
+    - ROUTINE
+    - URGENT
+    - STAT
+  example: ROUTINE
+
+InvestigationResultStatus:
+  type: string
+  enum:
+    - NORMAL
+    - ABNORMAL
+    - CRITICAL
+  example: NORMAL
+
+InvestigationOrderRequest:
+  type: object
+  required:
+    - orderType
+    - testName
+  properties:
+    orderType:
+      $ref: '#/InvestigationOrderType'
+    testName:
+      type: string
+      example: "Complete Blood Count"
+    testCode:
+      type: string
+      example: "CBC"
+    clinicalNotes:
+      type: string
+      example: "Fever investigation"
+    urgency:
+      $ref: '#/InvestigationUrgency'
+
+InvestigationResultRequest:
+  type: object
+  properties:
+    resultValue:
+      type: string
+      example: "WBC: 12000, Hb: 13.5"
+    resultUnit:
+      type: string
+    resultStatus:
+      $ref: '#/InvestigationResultStatus'
+    resultNotes:
+      type: string
+      example: "Leukocytosis noted"
+    resultReportUrl:
+      type: string
+      format: uri
+      example: "https://reports.healix.com/inv-123.pdf"
+
+InvestigationOrderResponse:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+    orderNumber:
+      type: string
+      example: "INV-20251115-00001"
+    appointmentId:
+      type: integer
+      format: int64
+    patientId:
+      type: integer
+      format: int64
+    patientName:
+      type: string
+    orderedBy:
+      type: integer
+      format: int64
+    orderedByName:
+      type: string
+    orderType:
+      $ref: '#/InvestigationOrderType'
+    testName:
+      type: string
+    testCode:
+      type: string
+    status:
+      $ref: '#/InvestigationOrderStatus'
+    clinicalNotes:
+      type: string
+    urgency:
+      $ref: '#/InvestigationUrgency'
+    resultValue:
+      type: string
+    resultUnit:
+      type: string
+    resultStatus:
+      $ref: '#/InvestigationResultStatus'
+    resultReportUrl:
+      type: string
+    resultNotes:
+      type: string
+    orderedAt:
+      type: string
+      format: date-time
+    sampleCollectedAt:
+      type: string
+      format: date-time
+    resultReportedAt:
+      type: string
+      format: date-time
+    reportedBy:
+      type: integer
+      format: int64
+    reportedByName:
+      type: string
+
+ReferralRequest:
+  type: object
+  required:
+    - referredToDepartmentId
+  properties:
+    referralType:
+      type: string
+      enum: [INTERNAL, EXTERNAL]
+      default: INTERNAL
+      example: "INTERNAL"
+    referredToDepartmentId:
+      type: integer
+      format: int64
+      example: 105
+    referredToPhysicianId:
+      type: integer
+      format: int64
+      example: 12
+    referralReason:
+      type: string
+      example: "Cardiology consultation required"
+    clinicalSummary:
+      type: string
+      example: "Patient has chest pain, needs ECG and echo"
+
+AdmitRequest:
+  type: object
+  required:
+    - bedId
+  properties:
+    bedId:
+      type: integer
+      format: int64
+      example: 205
+    admissionNotes:
+      type: string
+      example: "Patient admitted for observation and IV antibiotics"
+    estimatedDischargeDate:
+      type: string
+      format: date-time
+      example: "2025-11-20T12:00:00"
+
+DischargeRequest:
+  type: object
+  required:
+    - dischargeSummary
+  properties:
+    dischargeSummary:
+      type: string
+      example: "Patient improved, vitals stable"
+    dischargeInstructions:
+      type: string
+      example: "Continue oral medications for 5 days"
+    followUpDate:
+      type: string
+      format: date
+      example: "2025-11-25"
+

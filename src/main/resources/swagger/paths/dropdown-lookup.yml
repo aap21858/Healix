@@ -1,0 +1,208 @@
+dropdowns:
+  post:
+    tags:
+      - Dropdown Lookup
+    summary: Create multiple dropdown lookup entries
+    description: Insert multiple lookup records (bulk). Each record must contain type and code.
+    operationId: createDropdowns
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../schemas/dropdown.yml#/DropdownLookupRequest'
+            minItems: 1
+            maxItems: 500
+    responses:
+      '201':
+        description: Created successfully
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/dropdown.yml#/DropdownLookupResponse'
+      '400':
+        description: Invalid input
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+  get:
+    tags:
+      - Dropdown Lookup
+    summary: Get all dropdown entries
+    description: Retrieve all dropdown lookup entries
+    operationId: getAllDropdowns
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/dropdown.yml#/DropdownLookupResponse'
+
+dropdowns-by-type:
+  get:
+    tags:
+      - Dropdown Lookup
+    summary: Get dropdown values by type
+    description: Retrieve dropdown lookup entries for a given type. Use query param 'active' to filter only active values.
+    operationId: getDropdownsByType
+    parameters:
+      - name: type
+        in: path
+        required: true
+        description: Lookup type (e.g., INSURANCE_SCHEME, GENDER)
+        schema:
+          type: string
+          example: "INSURANCE_SCHEME"
+      - name: active
+        in: query
+        required: false
+        description: When true, only active entries are returned. When false, only inactive entries. If omitted, returns all.
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/dropdown.yml#/DropdownLookupResponse'
+      '404':
+        description: No entries found for the given type
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+dropdowns-by-id:
+  get:
+    tags:
+      - Dropdown Lookup
+    summary: Get dropdown by ID
+    description: Retrieve a specific dropdown lookup entry by its ID
+    operationId: getDropdownById
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Dropdown lookup ID
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Success
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/dropdown.yml#/DropdownLookupResponse'
+      '404':
+        description: Entry not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+  put:
+    tags:
+      - Dropdown Lookup
+    summary: Update dropdown lookup entry
+    description: Update an existing dropdown lookup entry
+    operationId: updateDropdown
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Dropdown lookup ID
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/dropdown.yml#/DropdownLookupRequest'
+    responses:
+      '200':
+        description: Updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/dropdown.yml#/DropdownLookupResponse'
+      '404':
+        description: Entry not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+  patch:
+    tags:
+      - Dropdown Lookup
+    summary: Partially update dropdown lookup entry
+    description: Update specific fields of an existing dropdown lookup entry
+    operationId: patchDropdown
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Dropdown lookup ID
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    responses:
+      '200':
+        description: Updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/dropdown.yml#/DropdownLookupResponse'
+      '404':
+        description: Entry not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+  delete:
+    tags:
+      - Dropdown Lookup
+    summary: Delete dropdown lookup entry
+    description: Permanently delete a dropdown lookup entry
+    operationId: deleteDropdownById
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Dropdown lookup ID
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '204':
+        description: Deleted successfully
+      '404':
+        description: Entry not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+

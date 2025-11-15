@@ -1,0 +1,652 @@
+appointments:
+  post:
+    tags:
+      - Appointment Management
+    summary: Create new appointment
+    description: Schedule a new OPD or IPD appointment
+    operationId: createAppointment
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/AppointmentRequest'
+    responses:
+      '201':
+        description: Appointment created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/AppointmentResponse'
+      '400':
+        description: Invalid input data
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ValidationErrorResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+
+  get:
+    tags:
+      - Appointment Management
+    summary: Get all appointments
+    description: Retrieve all appointments with pagination
+    operationId: getAllAppointments
+    parameters:
+      - $ref: '../parameters/common.yml#/PageParam'
+      - $ref: '../parameters/common.yml#/SizeParam'
+      - $ref: '../parameters/common.yml#/SortParam'
+    responses:
+      '200':
+        description: Appointments retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/AppointmentPageResponse'
+
+appointments-by-id:
+  get:
+    tags:
+      - Appointment Management
+    summary: Get appointment by ID
+    description: Retrieve detailed appointment information
+    operationId: getAppointmentById
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Appointment ID
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Appointment found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/AppointmentDetailResponse'
+      '404':
+        description: Appointment not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+  put:
+    tags:
+      - Appointment Management
+    summary: Update appointment
+    description: Update existing appointment details
+    operationId: updateAppointment
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/AppointmentRequest'
+    responses:
+      '200':
+        description: Appointment updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/AppointmentResponse'
+      '404':
+        description: Appointment not found
+
+  delete:
+    tags:
+      - Appointment Management
+    summary: Cancel appointment
+    description: Cancel an appointment
+    operationId: cancelAppointment
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '204':
+        description: Appointment cancelled successfully
+      '404':
+        description: Appointment not found
+
+appointments-search:
+  get:
+    tags:
+      - Appointment Management
+    summary: Search appointments
+    description: Search appointments by patient name, ID, contact, date, physician, or status
+    operationId: searchAppointments
+    parameters:
+      - name: patientName
+        in: query
+        description: Patient name (partial match)
+        schema:
+          type: string
+      - name: patientId
+        in: query
+        description: Patient ID
+        schema:
+          type: integer
+          format: int64
+      - name: contactNumber
+        in: query
+        description: Patient contact number
+        schema:
+          type: string
+      - name: appointmentDate
+        in: query
+        description: Appointment date (YYYY-MM-DD)
+        schema:
+          type: string
+          format: date
+      - name: physicianId
+        in: query
+        description: Physician ID
+        schema:
+          type: integer
+          format: int64
+      - name: status
+        in: query
+        description: Appointment status
+        schema:
+          $ref: '../schemas/appointment.yml#/AppointmentStatus'
+      - $ref: '../parameters/common.yml#/PageParam'
+      - $ref: '../parameters/common.yml#/SizeParam'
+    responses:
+      '200':
+        description: Search results
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/AppointmentPageResponse'
+
+appointments-status:
+  patch:
+    tags:
+      - Appointment Management
+    summary: Update appointment status
+    description: Change appointment status (e.g., WAITING, IN_CONSULTATION, etc.)
+    operationId: updateAppointmentStatus
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - status
+            properties:
+              status:
+                $ref: '../schemas/appointment.yml#/AppointmentStatus'
+    responses:
+      '200':
+        description: Status updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/AppointmentResponse'
+      '404':
+        description: Appointment not found
+
+appointments-triage:
+  post:
+    tags:
+      - Appointment Management
+    summary: Create or update triage data
+    description: Record pre-consultation assessment by nurse or junior doctor
+    operationId: createOrUpdateTriage
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/TriageRequest'
+    responses:
+      '201':
+        description: Triage data recorded successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/TriageResponse'
+      '404':
+        description: Appointment not found
+
+  get:
+    tags:
+      - Appointment Management
+    summary: Get triage data
+    description: Retrieve triage data for an appointment
+    operationId: getTriageByAppointment
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Triage data retrieved
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/TriageResponse'
+      '404':
+        description: Triage data not found
+
+appointments-vitals:
+  post:
+    tags:
+      - Appointment Management
+    summary: Record vitals
+    description: Record patient vitals during triage
+    operationId: recordVitals
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/VitalsRequest'
+    responses:
+      '201':
+        description: Vitals recorded successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/VitalsResponse'
+      '404':
+        description: Appointment not found
+
+  get:
+    tags:
+      - Appointment Management
+    summary: Get vitals
+    description: Retrieve all vitals records for an appointment
+    operationId: getVitalsByAppointment
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Vitals retrieved
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/appointment.yml#/VitalsResponse'
+
+appointments-examination:
+  post:
+    tags:
+      - Appointment Management
+    summary: Record examination
+    description: Record doctor's examination findings and diagnosis
+    operationId: recordExamination
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/ExaminationRequest'
+    responses:
+      '201':
+        description: Examination recorded successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/ExaminationResponse'
+      '404':
+        description: Appointment not found
+
+  get:
+    tags:
+      - Appointment Management
+    summary: Get examination
+    description: Retrieve examination data for an appointment
+    operationId: getExaminationByAppointment
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Examination retrieved
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/ExaminationResponse'
+      '404':
+        description: Examination not found
+
+appointments-prescriptions:
+  post:
+    tags:
+      - Appointment Management
+    summary: Create prescription
+    description: Create prescription with medication items
+    operationId: createPrescription
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/PrescriptionRequest'
+    responses:
+      '201':
+        description: Prescription created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/PrescriptionResponse'
+      '404':
+        description: Appointment not found
+
+  get:
+    tags:
+      - Appointment Management
+    summary: Get prescriptions
+    description: Retrieve all prescriptions for an appointment
+    operationId: getPrescriptionsByAppointment
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Prescriptions retrieved
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/appointment.yml#/PrescriptionResponse'
+
+prescriptions-by-id:
+  get:
+    tags:
+      - Appointment Management
+    summary: Get prescription by ID
+    description: Retrieve prescription details
+    operationId: getPrescriptionById
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Prescription found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/PrescriptionResponse'
+      '404':
+        description: Prescription not found
+
+prescriptions-status:
+  patch:
+    tags:
+      - Appointment Management
+    summary: Update prescription status
+    description: Change prescription status (DRAFT, PRESCRIBED, DISPENSED)
+    operationId: updatePrescriptionStatus
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - status
+            properties:
+              status:
+                $ref: '../schemas/appointment.yml#/PrescriptionStatus'
+    responses:
+      '200':
+        description: Status updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/PrescriptionResponse'
+
+appointments-investigations:
+  post:
+    tags:
+      - Appointment Management
+    summary: Create investigation order
+    description: Order pathology or radiology investigation
+    operationId: createInvestigationOrder
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/InvestigationOrderRequest'
+    responses:
+      '201':
+        description: Investigation ordered successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/InvestigationOrderResponse'
+      '404':
+        description: Appointment not found
+
+  get:
+    tags:
+      - Appointment Management
+    summary: Get investigation orders
+    description: Retrieve all investigation orders for an appointment
+    operationId: getInvestigationsByAppointment
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Investigations retrieved
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/appointment.yml#/InvestigationOrderResponse'
+
+investigations-result:
+  patch:
+    tags:
+      - Appointment Management
+    summary: Update investigation result
+    description: Record investigation result and report
+    operationId: updateInvestigationResult
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/InvestigationResultRequest'
+    responses:
+      '200':
+        description: Result updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/InvestigationOrderResponse'
+
+appointments-refer:
+  post:
+    tags:
+      - Appointment Management
+    summary: Create referral
+    description: Refer patient to another department or physician
+    operationId: createReferral
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/ReferralRequest'
+    responses:
+      '201':
+        description: Referral created and new appointment scheduled
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/AppointmentResponse'
+      '404':
+        description: Appointment not found
+
+appointments-admit:
+  post:
+    tags:
+      - Appointment Management
+    summary: Admit patient (Convert OPD to IPD)
+    description: Admit patient for inpatient care, allocate bed
+    operationId: admitPatient
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/AdmitRequest'
+    responses:
+      '200':
+        description: Patient admitted successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/AppointmentResponse'
+      '404':
+        description: Appointment not found
+      '400':
+        description: Invalid admission request (e.g., already admitted, bed unavailable)
+
+appointments-discharge:
+  post:
+    tags:
+      - Appointment Management
+    summary: Discharge patient
+    description: Discharge patient from IPD
+    operationId: dischargePatient
+    parameters:
+      - name: appointmentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/appointment.yml#/DischargeRequest'
+    responses:
+      '200':
+        description: Patient discharged successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/appointment.yml#/AppointmentResponse'
+      '404':
+        description: Appointment not found
+

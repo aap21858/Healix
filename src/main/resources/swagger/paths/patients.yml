@@ -1,0 +1,309 @@
+patients:
+  post:
+    tags:
+      - Patient Management
+    summary: Register multiple patients (batch registration)
+    description: Register one or more patients with personal, emergency, insurance, and medical details
+    operationId: registerPatient
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../schemas/patient.yml#/PatientRegistrationRequest'
+            minItems: 1
+            maxItems: 1000
+    responses:
+      '201':
+        description: Patients registered successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/BatchPatientResponse'
+      '207':
+        description: Multi-status - Some patients registered, some failed
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/BatchPatientResponse'
+      '400':
+        description: Invalid input data
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ValidationErrorResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+
+  get:
+    tags:
+      - Patient Management
+    summary: Get all patients (paginated)
+    description: Retrieve paginated list of all patients
+    operationId: getAllPatients
+    parameters:
+      - $ref: '../parameters/common.yml#/PageParam'
+      - $ref: '../parameters/common.yml#/SizeParam'
+      - $ref: '../parameters/common.yml#/SortParam'
+    responses:
+      '200':
+        description: Patients retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/PatientPageResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+
+patients-by-id:
+  get:
+    tags:
+      - Patient Management
+    summary: Get patient by ID
+    description: Retrieve patient details by database ID
+    operationId: getPatientById
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Patient database ID
+        schema:
+          type: integer
+          format: int64
+          example: 1
+    responses:
+      '200':
+        description: Patient found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/PatientResponse'
+      '404':
+        description: Patient not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+
+  put:
+    tags:
+      - Patient Management
+    summary: Update patient
+    description: Update existing patient details
+    operationId: updatePatient
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Patient database ID
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/patient.yml#/PatientRegistrationRequest'
+    responses:
+      '200':
+        description: Patient updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/PatientResponse'
+      '404':
+        description: Patient not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+      '400':
+        description: Invalid input data
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ValidationErrorResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+
+  delete:
+    tags:
+      - Patient Management
+    summary: Delete (deactivate) patient
+    description: Soft delete patient by setting status to INACTIVE
+    operationId: deletePatient
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Patient database ID
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '204':
+        description: Patient deactivated successfully
+      '404':
+        description: Patient not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+
+patients-activate:
+  patch:
+    tags:
+      - Patient Management
+    summary: Activate patient by ID
+    description: Set patient status to ACTIVE
+    operationId: activatePatient
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Patient database ID
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Patient activated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/PatientResponse'
+      '404':
+        description: Patient not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+
+patients-by-patient-id:
+  get:
+    tags:
+      - Patient Management
+    summary: Get patient by Patient ID
+    description: Retrieve patient details by Patient ID (e.g., SNG2025001)
+    operationId: getPatientByPatientId
+    parameters:
+      - name: patientId
+        in: path
+        required: true
+        description: Patient ID (e.g., SNG2025001)
+        schema:
+          type: string
+          example: "SNG2025001"
+    responses:
+      '200':
+        description: Patient found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/PatientResponse'
+      '404':
+        description: Patient not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+patients-search:
+  get:
+    tags:
+      - Patient Management
+    summary: Search patients
+    description: Search patients by name, patient ID, or mobile number
+    operationId: searchPatients
+    parameters:
+      - name: query
+        in: query
+        required: true
+        description: Search query (name, patient ID, or mobile)
+        schema:
+          type: string
+          example: "Rahul"
+      - $ref: '../parameters/common.yml#/PageParam'
+      - $ref: '../parameters/common.yml#/SizeParam'
+    responses:
+      '200':
+        description: Search results
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/PatientPageResponse'
+
+patients-upload-csv:
+  post:
+    tags:
+      - Patient Management
+    summary: Upload CSV file for bulk patient registration
+    description: |
+      Upload a CSV file containing patient details for batch registration.
+
+      **CSV Format:**
+      - First row must be headers (case-insensitive)
+      - Required columns: firstName, lastName, dateOfBirth, gender, mobileNumber, city, pinCode
+      - Optional columns: bloodGroup, aadharNumber, emailId, addressLine1, district, state
+
+      **Example CSV:**
+      ```
+      firstName,lastName,dateOfBirth,gender,bloodGroup,mobileNumber,emailId,city,pinCode
+      Rahul,Patil,1985-03-15,MALE,O+,9876543210,rahul@gmail.com,Sangli,416416
+      Priya,Sharma,1990-07-22,FEMALE,A+,9876543211,priya@gmail.com,Sangli,416416
+      ```
+    operationId: uploadPatientsCsv
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - file
+            properties:
+              file:
+                type: string
+                format: binary
+                description: CSV file containing patient data
+    responses:
+      '200':
+        description: CSV processed successfully (may contain partial failures)
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/CsvUploadResponse'
+      '400':
+        description: Invalid CSV file or format
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+
+patients-csv-template:
+  get:
+    tags:
+      - Patient Management
+    summary: Download CSV template
+    description: Download a CSV template file with proper headers for patient import
+    operationId: downloadCsvTemplate
+    responses:
+      '200':
+        description: CSV template file
+        content:
+          text/csv:
+            schema:
+              type: string
+              format: binary
+

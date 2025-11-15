@@ -1,0 +1,7 @@
+UnauthorizedError:
+  description: Access token is missing or invalid
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yml#/ErrorResponse'
+

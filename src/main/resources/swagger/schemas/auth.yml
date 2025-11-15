@@ -1,0 +1,42 @@
+LoginRequest:
+  type: object
+  required:
+    - emailId
+    - password
+  properties:
+    emailId:
+      type: string
+      format: email
+      example: "aap@gmail.com"
+    password:
+      type: string
+      format: password
+      example: "admin123"
+
+LoginResponse:
+  type: object
+  properties:
+    token:
+      type: string
+      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    role:
+      type: array
+      items:
+        type: string
+      example: ["ROLE_ADMIN", "ROLE_DOCTOR"]
+
+SetPasswordRequest:
+  type: object
+  required:
+    - token
+    - password
+  properties:
+    token:
+      type: string
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    password:
+      type: string
+      format: password
+      minLength: 8
+      example: "NewSecurePass123!"
+

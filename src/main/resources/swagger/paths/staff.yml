@@ -1,0 +1,122 @@
+staff:
+  get:
+    tags:
+      - Staff Management
+    summary: Get all staff members
+    description: Retrieve all staff members (Admin only)
+    operationId: getAllStaff
+    responses:
+      '200':
+        description: Staff list retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/staff.yml#/StaffResponse'
+
+staff-by-id:
+  get:
+    tags:
+      - Staff Management
+    summary: Get staff by ID
+    description: Retrieve staff member details by ID
+    operationId: getStaffById
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Staff member found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/staff.yml#/StaffResponse'
+      '404':
+        description: Staff not found
+
+  put:
+    tags:
+      - Staff Management
+    summary: Update staff member
+    description: Update staff member details (Admin only)
+    operationId: updateStaff
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/staff.yml#/StaffUpdateRequest'
+    responses:
+      '200':
+        description: Staff updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "Record Updated for John Doe successfully"
+
+  delete:
+    tags:
+      - Staff Management
+    summary: Delete staff member
+    description: Delete staff member (Admin only)
+    operationId: deleteStaff
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '200':
+        description: Staff deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "Record Deleted Successfully"
+
+admin-register:
+  post:
+    tags:
+      - Staff Management
+    summary: Register new staff member
+    description: Register new staff/admin user (Admin only)
+    operationId: registerStaff
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/staff.yml#/StaffRegistrationRequest'
+    responses:
+      '200':
+        description: Staff registered successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "Activation email sent to user@example.com"
+

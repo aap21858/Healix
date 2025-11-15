@@ -1,0 +1,47 @@
+insurance-schemes:
+  get:
+    tags:
+      - Insurance Schemes
+    summary: Get all active insurance schemes
+    description: Retrieve all active insurance schemes ordered by display order
+    operationId: getAllActiveSchemes
+    security: []
+    responses:
+      '200':
+        description: Insurance schemes retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/patient.yml#/InsuranceScheme'
+
+insurance-schemes-by-type:
+  get:
+    tags:
+      - Insurance Schemes
+    summary: Get schemes by type
+    description: Get GOVERNMENT or PRIVATE insurance schemes
+    operationId: getSchemesByType
+    security: []
+    parameters:
+      - name: schemeType
+        in: path
+        required: true
+        description: Scheme type (GOVERNMENT or PRIVATE)
+        schema:
+          type: string
+          enum:
+            - GOVERNMENT
+            - PRIVATE
+          example: "GOVERNMENT"
+    responses:
+      '200':
+        description: Schemes retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../schemas/patient.yml#/InsuranceScheme'
+

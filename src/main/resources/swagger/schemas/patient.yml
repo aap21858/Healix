@@ -1,0 +1,512 @@
+PatientRegistrationRequest:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  required:
+    - firstName
+    - lastName
+    - dateOfBirth
+    - gender
+    - mobileNumber
+    - city
+    - pinCode
+  properties:
+    firstName:
+      type: string
+      maxLength: 100
+      example: "Rahul"
+    lastName:
+      type: string
+      maxLength: 100
+      example: "Patil"
+    dateOfBirth:
+      type: string
+      format: date
+      example: "1985-03-15"
+    gender:
+      $ref: './common.yml#/Gender'
+    bloodGroup:
+      $ref: './common.yml#/BloodGroup'
+    aadharNumber:
+      type: string
+      pattern: '^[0-9]{12}$'
+      example: "123456789012"
+    photoUrl:
+      type: string
+      format: string
+      maxLength: 500
+      example: "https://example.com/photos/rahul.jpg"
+    mobileNumber:
+      type: string
+      pattern: '^[0-9]{10}$'
+      example: "9876543210"
+    emailId:
+      type: string
+      format: email
+      example: "rahul.patil@gmail.com"
+    preferredContactMethod:
+      $ref: './common.yml#/PreferredContactMethod'
+    addressLine1:
+      type: string
+      maxLength: 510
+      example: "123 Main Street, Vishrambag"
+    city:
+      type: string
+      maxLength: 100
+      example: "Sangli"
+    district:
+      type: string
+      maxLength: 100
+      example: "Sangli"
+    state:
+      type: string
+      maxLength: 50
+      default: "Maharashtra"
+      example: "Maharashtra"
+    pinCode:
+      type: string
+      pattern: '^[0-9]{6}$'
+      example: "416416"
+    emergencyContacts:
+      type: array
+      items:
+        $ref: '#/EmergencyContactRequest'
+    insurance:
+      $ref: '#/InsuranceRequest'
+    medicalHistory:
+      $ref: '#/MedicalHistoryRequest'
+
+EmergencyContactRequest:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  required:
+    - contactPersonName
+    - relationship
+    - contactNumber
+  properties:
+    contactPersonName:
+      type: string
+      maxLength: 100
+      example: "Sunita Patil"
+    relationship:
+      $ref: './common.yml#/Relationship'
+    contactNumber:
+      type: string
+      pattern: '^[0-9]{10}$'
+      example: "9876543220"
+    isPrimary:
+      type: boolean
+      default: true
+      example: true
+
+InsuranceRequest:
+  type: object
+  required:
+    - hasInsurance
+  properties:
+    hasInsurance:
+      type: boolean
+      example: true
+    insuranceType:
+      $ref: './common.yml#/InsuranceType'
+    schemeId:
+      type: integer
+      format: int64
+      example: 1
+    policyCardNumber:
+      type: string
+      maxLength: 50
+      example: "MJPJAY123456"
+    policyHolderName:
+      type: string
+      maxLength: 100
+      example: "Rahul Patil"
+    relationshipToHolder:
+      $ref: './common.yml#/Relationship'
+    policyExpiryDate:
+      type: string
+      format: date
+      example: "2025-12-31"
+    insuranceCardFrontUrl:
+      type: string
+      format: string
+      maxLength: 500
+    insuranceCardBackUrl:
+      type: string
+      format: string
+      maxLength: 500
+    pmjayCardUrl:
+      type: string
+      format: string
+      maxLength: 500
+    claimAmountLimit:
+      type: number
+      format: decimal
+      minimum: 0
+      example: 500000.00
+
+MedicalHistoryRequest:
+  type: object
+  properties:
+    knownAllergies:
+      type: array
+      items:
+        type: string
+      example: ["Penicillin", "Peanuts"]
+    currentMedications:
+      type: array
+      items:
+        type: string
+      example: ["Metformin 500mg twice daily", "Aspirin 75mg"]
+    pastSurgeries:
+      type: string
+      example: "Appendectomy (2010)"
+    chronicConditions:
+      type: string
+      example: "Type 2 Diabetes, Hypertension"
+    familyMedicalHistory:
+      type: string
+      example: "Father had diabetes"
+    disability:
+      type: string
+      example: "None"
+
+PatientResponse:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    id:
+      type: integer
+      format: int64
+      example: 1
+    patientId:
+      type: string
+      example: "SNG2025001"
+    firstName:
+      type: string
+      example: "Rahul"
+    lastName:
+      type: string
+      example: "Patil"
+    dateOfBirth:
+      type: string
+      format: date
+      example: "1985-03-15"
+    age:
+      type: integer
+      example: 39
+    gender:
+      $ref: './common.yml#/Gender'
+    bloodGroup:
+      $ref: './common.yml#/BloodGroup'
+    aadharNumber:
+      type: string
+      example: "123456789012"
+    photoUrl:
+      type: string
+      format: string
+    mobileNumber:
+      type: string
+      example: "9876543210"
+    emailId:
+      type: string
+      format: email
+      example: "rahul.patil@gmail.com"
+    preferredContactMethod:
+      $ref: './common.yml#/PreferredContactMethod'
+    addressLine1:
+      type: string
+      example: "123 Main Street"
+    city:
+      type: string
+      example: "Sangli"
+    district:
+      type: string
+      example: "Sangli"
+    state:
+      type: string
+      example: "Maharashtra"
+    pinCode:
+      type: string
+      example: "416416"
+    emergencyContacts:
+      type: array
+      items:
+        $ref: '#/EmergencyContactResponse'
+    insurance:
+      $ref: '#/InsuranceResponse'
+    medicalHistory:
+      $ref: '#/MedicalHistoryResponse'
+    status:
+      $ref: './common.yml#/PatientStatus'
+    createdAt:
+      type: string
+      format: date-time
+      example: "2025-01-20T10:30:00Z"
+    updatedAt:
+      type: string
+      format: date-time
+      example: "2025-01-21T15:45:00Z"
+
+EmergencyContactResponse:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    id:
+      type: integer
+      format: int64
+    contactPersonName:
+      type: string
+    relationship:
+      $ref: './common.yml#/Relationship'
+    contactNumber:
+      type: string
+    isPrimary:
+      type: boolean
+
+InsuranceResponse:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    id:
+      type: integer
+      format: int64
+    hasInsurance:
+      type: boolean
+    insuranceType:
+      $ref: './common.yml#/InsuranceType'
+    schemeId:
+      type: integer
+      format: int64
+    schemeName:
+      type: string
+      example: "Mahatma Jyotiba Phule Jan Arogya Yojana (MJPJAY)"
+    policyCardNumber:
+      type: string
+    policyHolderName:
+      type: string
+    relationshipToHolder:
+      $ref: './common.yml#/Relationship'
+    policyExpiryDate:
+      type: string
+      format: date
+    insuranceCardFrontUrl:
+      type: string
+      format: string
+    insuranceCardBackUrl:
+      type: string
+      format: string
+    pmjayCardUrl:
+      type: string
+      format: string
+    claimAmountLimit:
+      type: number
+      format: decimal
+
+MedicalHistoryResponse:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    id:
+      type: integer
+      format: int64
+    knownAllergies:
+      type: array
+      items:
+        type: string
+    currentMedications:
+      type: array
+      items:
+        type: string
+    pastSurgeries:
+      type: string
+    chronicConditions:
+      type: string
+    familyMedicalHistory:
+      type: string
+    disability:
+      type: string
+
+PatientPageResponse:
+  type: object
+  properties:
+    content:
+      type: array
+      items:
+        $ref: '#/PatientResponse'
+    pageable:
+      $ref: './common.yml#/Pageable'
+    totalPages:
+      type: integer
+      example: 5
+    totalElements:
+      type: integer
+      format: int64
+      example: 100
+    last:
+      type: boolean
+      example: false
+    size:
+      type: integer
+      example: 20
+    number:
+      type: integer
+      example: 0
+    numberOfElements:
+      type: integer
+      example: 20
+    first:
+      type: boolean
+      example: true
+    empty:
+      type: boolean
+      example: false
+
+FailedRegistration:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    requestIndex:
+      type: integer
+      description: Index of the failed request in the input array
+      example: 2
+    patientData:
+      $ref: '#/PatientRegistrationRequest'
+    errorMessage:
+      type: string
+      description: Reason for failure
+      example: "Patient already exists with mobileNumber: 9876543210"
+    errorCode:
+      type: string
+      description: Error code for categorization
+      enum:
+        - DUPLICATE_MOBILE
+        - DUPLICATE_AADHAR
+        - VALIDATION_ERROR
+        - INTERNAL_ERROR
+      example: "DUPLICATE_MOBILE"
+
+BatchPatientResponse:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    totalRequested:
+      type: integer
+      description: Total number of patients in the request
+      example: 5
+    successCount:
+      type: integer
+      description: Number of successfully registered patients
+      example: 4
+    failureCount:
+      type: integer
+      description: Number of failed registrations
+      example: 1
+    successfulRegistrations:
+      type: array
+      description: List of successfully registered patients
+      items:
+        $ref: '#/PatientResponse'
+    failedRegistrations:
+      type: array
+      description: List of failed registrations with error details
+      items:
+        $ref: '#/FailedRegistration'
+
+CsvValidationError:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    rowNumber:
+      type: integer
+      description: Row number in CSV file (1-based, excluding header)
+      example: 3
+    rowData:
+      type: object
+      additionalProperties:
+        type: string
+      description: Original row data from CSV
+      example:
+        firstName: "John"
+        lastName: ""
+        mobileNumber: "invalid"
+    errors:
+      type: array
+      description: List of validation errors for this row
+      items:
+        type: string
+      example:
+        - "lastName: Last name is required"
+        - "mobileNumber: Mobile number must be 10 digits"
+    errorType:
+      type: string
+      enum:
+        - VALIDATION_ERROR
+        - DUPLICATE_ERROR
+        - PARSING_ERROR
+      example: "VALIDATION_ERROR"
+
+CsvUploadResponse:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    fileName:
+      type: string
+      description: Name of the uploaded file
+      example: "patients.csv"
+    totalRows:
+      type: integer
+      description: Total number of data rows in CSV (excluding header)
+      example: 10
+    successCount:
+      type: integer
+      description: Number of successfully registered patients
+      example: 8
+    failureCount:
+      type: integer
+      description: Number of failed registrations
+      example: 2
+    validationErrors:
+      type: array
+      description: List of validation errors for failed rows
+      items:
+        $ref: '#/CsvValidationError'
+    successfulRegistrations:
+      type: array
+      description: List of successfully registered patients
+      items:
+        $ref: '#/PatientResponse'
+
+InsuranceScheme:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      example: 1
+    schemeCode:
+      type: string
+      example: "MJPJAY"
+    schemeName:
+      type: string
+      example: "Mahatma Jyotiba Phule Jan Arogya Yojana (MJPJAY)"
+    schemeType:
+      type: string
+      enum:
+        - GOVERNMENT
+        - PRIVATE
+      example: "GOVERNMENT"
+    description:
+      type: string
+    isActive:
+      type: boolean
+      example: true
+    displayOrder:
+      type: integer
+      example: 1
+    createdAt:
+      type: string
+      format: date-time
+    updatedAt:
+      type: string
+      format: date-time
+

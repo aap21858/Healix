@@ -1,0 +1,154 @@
+# ==================== Enums ====================
+
+Gender:
+  type: string
+  enum:
+    - MALE
+    - FEMALE
+    - OTHER
+  example: MALE
+
+BloodGroup:
+  type: string
+  enum:
+    - "A+"
+    - "A-"
+    - "B+"
+    - "B-"
+    - "O+"
+    - "O-"
+    - "AB+"
+    - "AB-"
+  example: "O+"
+
+Relationship:
+  type: string
+  enum:
+    - SELF
+    - SPOUSE
+    - PARENT
+    - CHILD
+    - SIBLING
+    - FRIEND
+    - OTHER
+  example: SPOUSE
+
+InsuranceType:
+  type: string
+  enum:
+    - GOVERNMENT
+    - PRIVATE
+    - NONE
+  example: GOVERNMENT
+
+PreferredContactMethod:
+  type: string
+  enum:
+    - SMS
+    - WHATSAPP
+    - EMAIL
+    - PHONE_CALL
+  example: WHATSAPP
+
+PatientStatus:
+  type: string
+  enum:
+    - ACTIVE
+    - INACTIVE
+  example: ACTIVE
+
+StaffStatus:
+  type: string
+  enum:
+    - ACTIVE
+    - INACTIVE
+  example: ACTIVE
+
+StaffRole:
+  type: string
+  enum:
+    - ADMIN
+    - DOCTOR
+    - RECEPTIONIST
+    - NURSE
+  example: DOCTOR
+
+# ==================== Error Models ====================
+
+ErrorResponse:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    timestamp:
+      type: string
+      format: date-time
+      example: "2025-01-21T10:30:00Z"
+    status:
+      type: integer
+      example: 404
+    error:
+      type: string
+      example: "Not Found"
+    message:
+      type: string
+      example: "Patient not found with ID: 123"
+    path:
+      type: string
+      example: "/api/patient"
+
+ValidationErrorResponse:
+  type: object
+  x-class-extra-annotation: "@lombok.Data @lombok.Builder @lombok.AllArgsConstructor"
+  properties:
+    timestamp:
+      type: string
+      format: date-time
+    status:
+      type: integer
+      example: 400
+    error:
+      type: string
+      example: "Validation Failed"
+    message:
+      type: string
+      example: "Invalid input data"
+    path:
+      type: string
+      example: "/api/patient"
+    validationErrors:
+      type: object
+      additionalProperties:
+        type: string
+      example:
+        firstName: "First name is required"
+        mobileNumber: "Mobile number must be 10 digits"
+
+# ==================== Pagination Models ====================
+
+Pageable:
+  type: object
+  properties:
+    sort:
+      $ref: '#/Sort'
+    offset:
+      type: integer
+      format: int64
+    pageNumber:
+      type: integer
+    pageSize:
+      type: integer
+    paged:
+      type: boolean
+    unpaged:
+      type: boolean
+
+Sort:
+  type: object
+  properties:
+    empty:
+      type: boolean
+    sorted:
+      type: boolean
+    unsorted:
+      type: boolean
+

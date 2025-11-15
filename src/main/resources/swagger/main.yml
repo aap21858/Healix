@@ -1,0 +1,283 @@
+openapi: 3.0.3
+info:
+  title: Healix Clinic Management API
+  description: |
+    REST API for clinic management system with EHR support for Maharashtra small to mid-sized clinics.
+    
+    ## Features
+    - Patient registration and management
+    - Emergency contact management
+    - Insurance details tracking
+    - Medical history records
+    - Appointment scheduling and management
+    - Triage, vitals, and examination
+    - Prescription and investigation management
+    - IPD/OPD workflow
+
+  version: 1.0.0
+  contact:
+    name: Healix Support
+    email: support@healix.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://localhost:8080
+    description: Development Server
+  - url: https://api.healix.com
+    description: Production Server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Patient Management
+    description: Patient registration and CRUD operations
+  - name: Insurance Schemes
+    description: Insurance scheme reference data
+  - name: Staff Management
+    description: Staff/Admin user management
+  - name: Dropdown Lookup
+    description: Generic dropdown/lookup reference data management
+  - name: Appointment Management
+    description: Appointment scheduling, triage, consultation, prescriptions, and IPD management
+
+paths:
+  # Authentication endpoints
+  /api/auth/login:
+    $ref: './paths/auth.yml#/login'
+  /api/auth/validate:
+    $ref: './paths/auth.yml#/validate'
+  /api/auth/set-password:
+    $ref: './paths/auth.yml#/set-password'
+
+  # Patient Management endpoints
+  /api/patients:
+    $ref: './paths/patients.yml#/patients'
+  /api/patients/{id}:
+    $ref: './paths/patients.yml#/patients-by-id'
+  /api/patients/{id}/activate:
+    $ref: './paths/patients.yml#/patients-activate'
+  /api/patients/patient-id/{patientId}:
+    $ref: './paths/patients.yml#/patients-by-patient-id'
+  /api/patients/search:
+    $ref: './paths/patients.yml#/patients-search'
+  /api/patients/upload-csv:
+    $ref: './paths/patients.yml#/patients-upload-csv'
+  /api/patients/download-csv-template:
+    $ref: './paths/patients.yml#/patients-csv-template'
+
+  # Insurance Schemes endpoints
+  /api/insurance-schemes:
+    $ref: './paths/insurance-schemes.yml#/insurance-schemes'
+  /api/insurance-schemes/type/{schemeType}:
+    $ref: './paths/insurance-schemes.yml#/insurance-schemes-by-type'
+
+  # Staff Management endpoints
+  /api/staff:
+    $ref: './paths/staff.yml#/staff'
+  /api/staff/{id}:
+    $ref: './paths/staff.yml#/staff-by-id'
+  /api/admin/register:
+    $ref: './paths/staff.yml#/admin-register'
+
+  # Dropdown Lookup endpoints
+  /api/dropdowns:
+    $ref: './paths/dropdown-lookup.yml#/dropdowns'
+  /api/dropdowns/type/{type}:
+    $ref: './paths/dropdown-lookup.yml#/dropdowns-by-type'
+  /api/dropdowns/{id}:
+    $ref: './paths/dropdown-lookup.yml#/dropdowns-by-id'
+
+  # Appointment Management endpoints
+  /api/appointments:
+    $ref: './paths/appointments.yml#/appointments'
+  /api/appointments/{id}:
+    $ref: './paths/appointments.yml#/appointments-by-id'
+  /api/appointments/search:
+    $ref: './paths/appointments.yml#/appointments-search'
+  /api/appointments/{id}/status:
+    $ref: './paths/appointments.yml#/appointments-status'
+  /api/appointments/{appointmentId}/triage:
+    $ref: './paths/appointments.yml#/appointments-triage'
+  /api/appointments/{appointmentId}/vitals:
+    $ref: './paths/appointments.yml#/appointments-vitals'
+  /api/appointments/{appointmentId}/examination:
+    $ref: './paths/appointments.yml#/appointments-examination'
+  /api/appointments/{appointmentId}/prescriptions:
+    $ref: './paths/appointments.yml#/appointments-prescriptions'
+  /api/prescriptions/{id}:
+    $ref: './paths/appointments.yml#/prescriptions-by-id'
+  /api/prescriptions/{id}/status:
+    $ref: './paths/appointments.yml#/prescriptions-status'
+  /api/appointments/{appointmentId}/investigations:
+    $ref: './paths/appointments.yml#/appointments-investigations'
+  /api/investigations/{id}/result:
+    $ref: './paths/appointments.yml#/investigations-result'
+  /api/appointments/{appointmentId}/refer:
+    $ref: './paths/appointments.yml#/appointments-refer'
+  /api/appointments/{appointmentId}/admit:
+    $ref: './paths/appointments.yml#/appointments-admit'
+  /api/appointments/{appointmentId}/discharge:
+    $ref: './paths/appointments.yml#/appointments-discharge'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  parameters:
+    PageParam:
+      $ref: './parameters/common.yml#/PageParam'
+    SizeParam:
+      $ref: './parameters/common.yml#/SizeParam'
+    SortParam:
+      $ref: './parameters/common.yml#/SortParam'
+
+  responses:
+    UnauthorizedError:
+      $ref: './responses/common.yml#/UnauthorizedError'
+
+  schemas:
+    # Common schemas (enums, errors, pagination)
+    Gender:
+      $ref: './schemas/common.yml#/Gender'
+    BloodGroup:
+      $ref: './schemas/common.yml#/BloodGroup'
+    Relationship:
+      $ref: './schemas/common.yml#/Relationship'
+    InsuranceType:
+      $ref: './schemas/common.yml#/InsuranceType'
+    PreferredContactMethod:
+      $ref: './schemas/common.yml#/PreferredContactMethod'
+    PatientStatus:
+      $ref: './schemas/common.yml#/PatientStatus'
+    StaffStatus:
+      $ref: './schemas/common.yml#/StaffStatus'
+    StaffRole:
+      $ref: './schemas/common.yml#/StaffRole'
+    ErrorResponse:
+      $ref: './schemas/common.yml#/ErrorResponse'
+    ValidationErrorResponse:
+      $ref: './schemas/common.yml#/ValidationErrorResponse'
+    Pageable:
+      $ref: './schemas/common.yml#/Pageable'
+    Sort:
+      $ref: './schemas/common.yml#/Sort'
+
+    # Authentication schemas
+    LoginRequest:
+      $ref: './schemas/auth.yml#/LoginRequest'
+    LoginResponse:
+      $ref: './schemas/auth.yml#/LoginResponse'
+    SetPasswordRequest:
+      $ref: './schemas/auth.yml#/SetPasswordRequest'
+
+    # Patient schemas
+    PatientRegistrationRequest:
+      $ref: './schemas/patient.yml#/PatientRegistrationRequest'
+    EmergencyContactRequest:
+      $ref: './schemas/patient.yml#/EmergencyContactRequest'
+    InsuranceRequest:
+      $ref: './schemas/patient.yml#/InsuranceRequest'
+    MedicalHistoryRequest:
+      $ref: './schemas/patient.yml#/MedicalHistoryRequest'
+    PatientResponse:
+      $ref: './schemas/patient.yml#/PatientResponse'
+    EmergencyContactResponse:
+      $ref: './schemas/patient.yml#/EmergencyContactResponse'
+    InsuranceResponse:
+      $ref: './schemas/patient.yml#/InsuranceResponse'
+    MedicalHistoryResponse:
+      $ref: './schemas/patient.yml#/MedicalHistoryResponse'
+    PatientPageResponse:
+      $ref: './schemas/patient.yml#/PatientPageResponse'
+    FailedRegistration:
+      $ref: './schemas/patient.yml#/FailedRegistration'
+    BatchPatientResponse:
+      $ref: './schemas/patient.yml#/BatchPatientResponse'
+    CsvValidationError:
+      $ref: './schemas/patient.yml#/CsvValidationError'
+    CsvUploadResponse:
+      $ref: './schemas/patient.yml#/CsvUploadResponse'
+    InsuranceScheme:
+      $ref: './schemas/patient.yml#/InsuranceScheme'
+
+    # Staff schemas
+    StaffRegistrationRequest:
+      $ref: './schemas/staff.yml#/StaffRegistrationRequest'
+    StaffUpdateRequest:
+      $ref: './schemas/staff.yml#/StaffUpdateRequest'
+    StaffResponse:
+      $ref: './schemas/staff.yml#/StaffResponse'
+
+    # Dropdown schemas
+    DropdownLookupRequest:
+      $ref: './schemas/dropdown.yml#/DropdownLookupRequest'
+    DropdownLookupResponse:
+      $ref: './schemas/dropdown.yml#/DropdownLookupResponse'
+
+    # Appointment schemas
+    AppointmentStatus:
+      $ref: './schemas/appointment.yml#/AppointmentStatus'
+    AppointmentType:
+      $ref: './schemas/appointment.yml#/AppointmentType'
+    UrgencyLevel:
+      $ref: './schemas/appointment.yml#/UrgencyLevel'
+    AppointmentRequest:
+      $ref: './schemas/appointment.yml#/AppointmentRequest'
+    AppointmentResponse:
+      $ref: './schemas/appointment.yml#/AppointmentResponse'
+    AppointmentDetailResponse:
+      $ref: './schemas/appointment.yml#/AppointmentDetailResponse'
+    AppointmentPageResponse:
+      $ref: './schemas/appointment.yml#/AppointmentPageResponse'
+    TriageRequest:
+      $ref: './schemas/appointment.yml#/TriageRequest'
+    TriageResponse:
+      $ref: './schemas/appointment.yml#/TriageResponse'
+    VitalsRequest:
+      $ref: './schemas/appointment.yml#/VitalsRequest'
+    VitalsResponse:
+      $ref: './schemas/appointment.yml#/VitalsResponse'
+    ExaminationRequest:
+      $ref: './schemas/appointment.yml#/ExaminationRequest'
+    ExaminationResponse:
+      $ref: './schemas/appointment.yml#/ExaminationResponse'
+    PrescriptionStatus:
+      $ref: './schemas/appointment.yml#/PrescriptionStatus'
+    PrescriptionRequest:
+      $ref: './schemas/appointment.yml#/PrescriptionRequest'
+    PrescriptionItemRequest:
+      $ref: './schemas/appointment.yml#/PrescriptionItemRequest'
+    PrescriptionResponse:
+      $ref: './schemas/appointment.yml#/PrescriptionResponse'
+    PrescriptionItemResponse:
+      $ref: './schemas/appointment.yml#/PrescriptionItemResponse'
+    InvestigationOrderType:
+      $ref: './schemas/appointment.yml#/InvestigationOrderType'
+    InvestigationOrderStatus:
+      $ref: './schemas/appointment.yml#/InvestigationOrderStatus'
+    InvestigationUrgency:
+      $ref: './schemas/appointment.yml#/InvestigationUrgency'
+    InvestigationResultStatus:
+      $ref: './schemas/appointment.yml#/InvestigationResultStatus'
+    InvestigationOrderRequest:
+      $ref: './schemas/appointment.yml#/InvestigationOrderRequest'
+    InvestigationResultRequest:
+      $ref: './schemas/appointment.yml#/InvestigationResultRequest'
+    InvestigationOrderResponse:
+      $ref: './schemas/appointment.yml#/InvestigationOrderResponse'
+    ReferralRequest:
+      $ref: './schemas/appointment.yml#/ReferralRequest'
+    AdmitRequest:
+      $ref: './schemas/appointment.yml#/AdmitRequest'
+    DischargeRequest:
+      $ref: './schemas/appointment.yml#/DischargeRequest'
+

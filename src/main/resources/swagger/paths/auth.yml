@@ -1,0 +1,91 @@
+login:
+  post:
+    tags:
+      - Authentication
+    summary: User login
+    description: Authenticate user and receive JWT token
+    operationId: login
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yml#/LoginRequest'
+    responses:
+      '200':
+        description: Login successful
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yml#/LoginResponse'
+      '400':
+        description: Invalid credentials
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+      '401':
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+validate:
+  get:
+    tags:
+      - Authentication
+    summary: Validate JWT token
+    description: Validate if the provided JWT token is valid
+    operationId: validateToken
+    responses:
+      '200':
+        description: Token is valid
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "Valid token"
+      '401':
+        description: Invalid or expired token
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+set-password:
+  post:
+    tags:
+      - Authentication
+    summary: Set/Reset password
+    description: Set password for new user or reset forgotten password
+    operationId: setPassword
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yml#/SetPasswordRequest'
+    responses:
+      '200':
+        description: Password set successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "Password set successfully"
+      '400':
+        description: Invalid or expired token
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
