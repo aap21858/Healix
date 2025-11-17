@@ -62,7 +62,7 @@ public class PatientInsurance {
     @Column(name = "pmjay_card_url", length = 500)
     private String pmjayCardUrl;
 
-    @Column(name = "claim_amount_limit", precision = 10, scale = 2)
+    @Column(name = "claim_amount_limit")
     private BigDecimal claimAmountLimit;
 
     @Column(name = "created_at", updatable = false)

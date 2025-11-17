@@ -32,7 +32,7 @@ public class Patient {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "patient_id", unique = true, nullable = false, length = 20)
+    @Column(name = "patient_id", unique = true, length = 20)
     private String patientId;
 
     // Personal Information

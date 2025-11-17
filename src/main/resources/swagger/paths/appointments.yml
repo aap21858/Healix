@@ -192,12 +192,7 @@ appointments-status:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - status
-            properties:
-              status:
-                $ref: '../schemas/appointment.yml#/AppointmentStatus'
+            $ref: '../schemas/appointment.yml#/UpdateAppointmentStatusRequest'
     responses:
       '200':
         description: Status updated successfully
@@ -463,12 +458,7 @@ prescriptions-status:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - status
-            properties:
-              status:
-                $ref: '../schemas/appointment.yml#/PrescriptionStatus'
+            $ref: '../schemas/appointment.yml#/UpdatePrescriptionStatusRequest'
     responses:
       '200':
         description: Status updated successfully

@@ -28,7 +28,7 @@ CREATE TABLE staff_roles (
 -- Patient Registration Tables
 CREATE TABLE patients (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    patient_id VARCHAR(20) UNIQUE NOT NULL, -- e.g., SNG2025001
+    patient_id VARCHAR(20) UNIQUE, -- e.g., SNG2025001 (Generated after insert)
 
     -- Personal Information
     first_name VARCHAR(100) NOT NULL,

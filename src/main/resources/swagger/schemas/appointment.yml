@@ -699,3 +699,19 @@ DischargeRequest:
       format: date
       example: "2025-11-25"
 
+UpdateAppointmentStatusRequest:
+  type: object
+  required:
+    - status
+  properties:
+    status:
+      $ref: '#/AppointmentStatus'
+
+UpdatePrescriptionStatusRequest:
+  type: object
+  required:
+    - status
+  properties:
+    status:
+      $ref: '#/PrescriptionStatus'
+

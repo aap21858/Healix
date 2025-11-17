@@ -77,7 +77,7 @@ paths:
     $ref: './paths/insurance-schemes.yml#/insurance-schemes-by-type'
 
   # Staff Management endpoints
-  /api/staff:
+  /api/staff/:
     $ref: './paths/staff.yml#/staff'
   /api/staff/{id}:
     $ref: './paths/staff.yml#/staff-by-id'
@@ -280,4 +280,8 @@ components:
       $ref: './schemas/appointment.yml#/AdmitRequest'
     DischargeRequest:
       $ref: './schemas/appointment.yml#/DischargeRequest'
+    UpdateAppointmentStatusRequest:
+      $ref: './schemas/appointment.yml#/UpdateAppointmentStatusRequest'
+    UpdatePrescriptionStatusRequest:
+      $ref: './schemas/appointment.yml#/UpdatePrescriptionStatusRequest'
 

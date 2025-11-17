@@ -1,8 +1,6 @@
 package com.healix.controller;
 
 import com.healix.entity.Staff;
-import com.healix.enums.STAFF_STATUS;
-import com.healix.repository.StaffRepository;
 import com.healix.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;

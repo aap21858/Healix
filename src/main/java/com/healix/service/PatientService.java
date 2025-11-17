@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.random.RandomGenerator;
 
 @Service
 @RequiredArgsConstructor
@@ -137,15 +136,35 @@ public class PatientService {
             throw new DuplicateResourceException("Patient", "aadharNumber", request.getAadharNumber());
         }
 
-        // Create and save patient
+        // Map request -> entity
         Patient patient = mapToEntity(request);
-        patient.setPatientId(generatePatientId(
-                RandomGenerator.getDefault().nextLong(10, 99)
-        ));
 
-        Patient savedPatient = patientRepository.save(patient);
+        // Detach child relations temporarily so they are not inserted before parent has a DB id
+        var insurance = patient.getInsurance();
+        var medicalHistory = patient.getMedicalHistory();
+        patient.setInsurance(null);
+        patient.setMedicalHistory(null);
 
-        return mapToResponse(savedPatient);
+        // Persist parent and flush to obtain generated DB id
+        Patient saved = patientRepository.saveAndFlush(patient);
+
+        // Generate and set application patientId using the DB id
+        saved.setPatientId(generatePatientId(saved.getId()));
+
+        // Re-attach children and set their parent references so foreign key is populated
+        if (insurance != null) {
+            insurance.setPatient(saved);
+            saved.setInsurance(insurance);
+        }
+        if (medicalHistory != null) {
+            medicalHistory.setPatient(saved);
+            saved.setMedicalHistory(medicalHistory);
+        }
+
+        // Save again to persist patientId and child rows with non-null patient_id
+        Patient finalSaved = patientRepository.save(saved);
+
+        return mapToResponse(finalSaved);
     }
 
     /**

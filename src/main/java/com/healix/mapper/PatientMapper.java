@@ -51,7 +51,10 @@ public interface PatientMapper {
             patient.getEmergencyContacts().clear();
             contacts.forEach(patient::addEmergencyContact);
         } else {
-            patient.getEmergencyContacts().clear();
+            // If request does not provide emergency contacts, clear only if patient already has contacts
+            if (patient.getEmergencyContacts() != null) {
+                patient.getEmergencyContacts().clear();
+            }
         }
     }
 
