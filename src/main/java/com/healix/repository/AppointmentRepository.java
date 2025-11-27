@@ -31,6 +31,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     Page<Appointment> findByAppointmentDateBetween(LocalDate startDate, LocalDate endDate, Pageable pageable);
 
+    boolean existsByPatientIdAndAppointmentDateAndStatusNotIn(Long patientId, LocalDate appointmentDate, List<AppointmentStatus> statuses);
+
     @Query("SELECT a FROM Appointment a WHERE " +
            "(:patientId IS NULL OR a.patient.id = :patientId) AND " +
            "(:physicianId IS NULL OR a.physicianId = :physicianId) AND " +
@@ -68,5 +70,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     long countByAppointmentDate(LocalDate date);
 
     long countByPhysicianIdAndAppointmentDate(Long physicianId, LocalDate date);
-}
 
+    List<Appointment> findByPhysicianIdAndAppointmentDate(Long physicianId, LocalDate date);
+}

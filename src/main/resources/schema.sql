@@ -131,11 +131,14 @@ CREATE TABLE patient_medical_history (
     chronic_conditions TEXT,
     family_medical_history TEXT,
     disability TEXT,
+    social_history TEXT, -- Smoking, alcohol, occupation, living conditions
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
+    updated_by BIGINT, -- Track who made the change
 
-    CONSTRAINT fk_medical_history_patient FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+    CONSTRAINT fk_medical_history_patient FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    CONSTRAINT fk_medical_history_updated_by FOREIGN KEY (updated_by) REFERENCES staff(id)
 );
 
 -- ============================================
@@ -179,6 +182,24 @@ INSERT INTO dropdown_lookup (type, code, description, display_order) VALUES
 ('INSURANCE_PROVIDER', 'MAX_BUPA', 'Max Bupa', 10),
 ('INSURANCE_PROVIDER', 'CARE_HEALTH', 'Care Health', 11),
 ('INSURANCE_PROVIDER', 'OTHER', 'Other', 12);
+
+-- Dropdown lookup seed data for departments (type = 'DEPARTMENT')
+INSERT INTO dropdown_lookup (type, code, description, display_order) VALUES
+('DEPARTMENT', 'CARDIOLOGY', 'Cardiology', 1),
+('DEPARTMENT', 'PEDIATRICS', 'Pediatrics', 2),
+('DEPARTMENT', 'ORTHOPEDICS', 'Orthopedics', 3),
+('DEPARTMENT', 'NEUROLOGY', 'Neurology', 4),
+('DEPARTMENT', 'GENERAL_MEDICINE', 'General Medicine', 5),
+('DEPARTMENT', 'SURGERY', 'Surgery', 6),
+('DEPARTMENT', 'GYNECOLOGY', 'Gynecology', 7),
+('DEPARTMENT', 'DERMATOLOGY', 'Dermatology', 8),
+('DEPARTMENT', 'ENT', 'ENT (Ear, Nose, Throat)', 9),
+('DEPARTMENT', 'OPHTHALMOLOGY', 'Ophthalmology', 10),
+('DEPARTMENT', 'PSYCHIATRY', 'Psychiatry', 11),
+('DEPARTMENT', 'RADIOLOGY', 'Radiology', 12),
+('DEPARTMENT', 'PATHOLOGY', 'Pathology', 13),
+('DEPARTMENT', 'EMERGENCY', 'Emergency', 14),
+('DEPARTMENT', 'ICU', 'Intensive Care Unit', 15);
 
 -- Sample Patient Data
 INSERT INTO patients (patient_id, first_name, last_name, date_of_birth, gender, blood_group,
@@ -229,6 +250,7 @@ CREATE TABLE appointments (
 
     -- Resource Allocation
     department_id BIGINT, -- References dropdown_lookup (type='DEPARTMENT')
+    specialty VARCHAR(100), -- Doctor's specialty (e.g., Cardiology, Pediatrics)
     physician_id BIGINT NOT NULL,
     consultation_room VARCHAR(50),
 
@@ -240,6 +262,10 @@ CREATE TABLE appointments (
     chief_complaint TEXT,
     notes TEXT,
 
+    -- Medical History Review (for check-in)
+    medical_history_review_required BOOLEAN DEFAULT FALSE,
+    medical_history_review_notes TEXT, -- What patient reports has changed
+
     -- Referral (if applicable)
     referred_from_appointment_id BIGINT,
     referred_to_department_id BIGINT,
@@ -249,6 +275,23 @@ CREATE TABLE appointments (
     bed_id BIGINT, -- For IPD appointments
     admission_date DATETIME,
     discharge_date DATETIME,
+
+    -- Completion Details
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    actual_duration_minutes INT,
+
+    -- Cancellation/Rescheduling
+    cancelled_at TIMESTAMP,
+    cancelled_by BIGINT,
+    cancellation_reason TEXT,
+    rescheduled_from_id BIGINT,
+    rescheduled_to_id BIGINT,
+
+    -- Metadata
+    room_number VARCHAR(20),
+    equipment_required TEXT, -- Comma-separated list or JSON
+    requires_assistance BOOLEAN DEFAULT FALSE,
 
     -- Audit
     created_by BIGINT,
@@ -260,7 +303,10 @@ CREATE TABLE appointments (
     CONSTRAINT fk_appointment_physician FOREIGN KEY (physician_id) REFERENCES staff(id),
     CONSTRAINT fk_appointment_department FOREIGN KEY (department_id) REFERENCES dropdown_lookup(id),
     CONSTRAINT fk_appointment_referred_to_physician FOREIGN KEY (referred_to_physician_id) REFERENCES staff(id),
-    CONSTRAINT fk_appointment_referred_to_department FOREIGN KEY (referred_to_department_id) REFERENCES dropdown_lookup(id)
+    CONSTRAINT fk_appointment_referred_to_department FOREIGN KEY (referred_to_department_id) REFERENCES dropdown_lookup(id),
+    CONSTRAINT fk_appointment_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES staff(id),
+    CONSTRAINT fk_appointment_rescheduled_from FOREIGN KEY (rescheduled_from_id) REFERENCES appointments(id),
+    CONSTRAINT fk_appointment_rescheduled_to FOREIGN KEY (rescheduled_to_id) REFERENCES appointments(id)
 );
 
 -- Create indexes for appointments table
@@ -269,32 +315,109 @@ CREATE INDEX idx_appointment_patient ON appointments(patient_id);
 CREATE INDEX idx_appointment_physician ON appointments(physician_id);
 CREATE INDEX idx_appointment_status ON appointments(status);
 CREATE INDEX idx_appointment_number ON appointments(appointment_number);
+CREATE INDEX idx_appointment_specialty ON appointments(specialty);
 
--- Appointment Triage (Pre-consultation assessment)
-CREATE TABLE appointment_triage (
+-- Doctor Schedules Table (Recurring availability)
+CREATE TABLE doctor_schedules (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    appointment_id BIGINT NOT NULL UNIQUE,
+    doctor_id BIGINT NOT NULL,
 
-    -- Performed by
-    recorded_by BIGINT NOT NULL, -- Staff ID (nurse/junior doctor)
-    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Recurring Schedule
+    day_of_week INT NOT NULL, -- 1=Monday, 7=Sunday
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
 
-    -- General Information
-    chief_complaints TEXT,
-    history_present_illness TEXT,
-    past_medical_history TEXT,
-    family_history TEXT,
-    allergies TEXT,
-    current_medications TEXT,
-    social_history TEXT,
-    notes TEXT,
+    -- Slot Configuration
+    slot_duration_minutes INT DEFAULT 30,
+    buffer_time_minutes INT DEFAULT 5, -- Time between appointments
+    max_appointments_per_slot INT DEFAULT 1,
 
-    CONSTRAINT fk_triage_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
-    CONSTRAINT fk_triage_recorded_by FOREIGN KEY (recorded_by) REFERENCES staff(id)
+    -- Availability
+    is_available BOOLEAN DEFAULT TRUE,
+    effective_from DATE NOT NULL,
+    effective_to DATE, -- NULL means ongoing
+
+    -- Location
+    location VARCHAR(100), -- Clinic name/branch
+    room_number VARCHAR(20),
+
+    -- Break Times (JSON format)
+    break_times TEXT, -- JSON: [{"start": "13:00", "end": "14:00"}]
+
+    -- Metadata
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_schedule_doctor FOREIGN KEY (doctor_id) REFERENCES staff(id),
+    CONSTRAINT uq_doctor_schedule UNIQUE(doctor_id, day_of_week, start_time, effective_from)
 );
 
+-- Create indexes for doctor_schedules
+CREATE INDEX idx_schedule_doctor ON doctor_schedules(doctor_id);
+CREATE INDEX idx_schedule_day ON doctor_schedules(day_of_week);
+CREATE INDEX idx_schedule_effective_dates ON doctor_schedules(effective_from, effective_to);
+
+-- Schedule Overrides Table (Exceptions to regular schedule)
+CREATE TABLE schedule_overrides (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    doctor_id BIGINT NOT NULL,
+    override_date DATE NOT NULL,
+
+    -- Override Type
+    override_type VARCHAR(30) NOT NULL, -- UNAVAILABLE, CUSTOM_HOURS, BREAK
+
+    -- Custom Hours (if applicable)
+    start_time TIME,
+    end_time TIME,
+
+    reason VARCHAR(255), -- Leave, Conference, Emergency, etc.
+    notes TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT,
+
+    CONSTRAINT fk_override_doctor FOREIGN KEY (doctor_id) REFERENCES staff(id),
+    CONSTRAINT fk_override_created_by FOREIGN KEY (created_by) REFERENCES staff(id),
+    CONSTRAINT uq_doctor_override_date UNIQUE(doctor_id, override_date)
+);
+
+-- Create indexes for schedule_overrides
+CREATE INDEX idx_override_doctor ON schedule_overrides(doctor_id);
+CREATE INDEX idx_override_date ON schedule_overrides(override_date);
+
+-- Appointment Audit History (Track all status changes)
+CREATE TABLE appointment_audit (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    appointment_id BIGINT NOT NULL,
+
+    -- Change Details
+    action VARCHAR(50) NOT NULL, -- CREATED, STATUS_CHANGED, RESCHEDULED, CANCELLED, COMPLETED
+    old_status VARCHAR(30),
+    new_status VARCHAR(30),
+    old_date DATE,
+    new_date DATE,
+    old_time TIME,
+    new_time TIME,
+
+    -- Reason/Notes
+    reason TEXT,
+    notes TEXT,
+
+    -- Audit
+    changed_by BIGINT,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_audit_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+    CONSTRAINT fk_audit_changed_by FOREIGN KEY (changed_by) REFERENCES staff(id)
+);
+
+-- Create indexes for appointment_audit
+CREATE INDEX idx_audit_appointment ON appointment_audit(appointment_id);
+CREATE INDEX idx_audit_changed_at ON appointment_audit(changed_at);
+
+
 -- Appointment Vitals (Clinical measurements)
-CREATE TABLE appointment_vitals (
+CREATE TABLE vitals (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     appointment_id BIGINT NOT NULL,
 
@@ -302,36 +425,49 @@ CREATE TABLE appointment_vitals (
     weight DECIMAL(5,2), -- kg
     height DECIMAL(5,2), -- cm
     head_circumference DECIMAL(5,2), -- cm (for pediatric)
-    temperature DECIMAL(4,2), -- Fahrenheit or Celsius
+    temperature DECIMAL(5,2), -- Fahrenheit or Celsius
     temperature_unit VARCHAR(1) DEFAULT 'F', -- F or C
     heart_rate INT, -- bpm
-    respiratory_rate INT, -- breaths per minute
+    respiratory_rate DECIMAL(5,2), -- breaths per minute (supports decimals like 18.5)
     systolic_bp INT, -- mmHg
     diastolic_bp INT, -- mmHg
     spo2 DECIMAL(5,2), -- Oxygen saturation %
     random_blood_sugar DECIMAL(6,2), -- mg/dL
-    bmi DECIMAL(4,2), -- Calculated
+    bmi DECIMAL(5,2), -- Calculated
     bmi_status VARCHAR(20), -- Underweight, Normal, Overweight, Obese
     pain_level INT, -- 0-10 scale
 
-    -- Symptoms (JSON array)
-    symptoms JSON,
-
     -- Audit
     recorded_by BIGINT NOT NULL,
+    recorded_by_name VARCHAR(255),
     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_vitals_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
     CONSTRAINT fk_vitals_recorded_by FOREIGN KEY (recorded_by) REFERENCES staff(id)
 );
 
--- Create index for appointment_vitals table
-CREATE INDEX idx_vitals_appointment ON appointment_vitals(appointment_id);
+-- Create index for vitals table
+CREATE INDEX idx_vitals_appointment ON vitals(appointment_id);
 
--- Appointment Examination (Doctor's examination notes)
+-- Vital Symptoms (ElementCollection for symptoms list)
+CREATE TABLE vital_symptoms (
+    vital_id BIGINT NOT NULL,
+    symptom VARCHAR(255),
+    CONSTRAINT fk_vital_symptoms_vital FOREIGN KEY (vital_id) REFERENCES vitals(id) ON DELETE CASCADE
+);
+
+-- Create index for vital_symptoms table
+CREATE INDEX idx_vital_symptoms_vital ON vital_symptoms(vital_id);
+
+-- Appointment Examination (Doctor's examination notes - includes all assessment fields)
 CREATE TABLE appointment_examination (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     appointment_id BIGINT NOT NULL UNIQUE,
+
+    -- Current Visit Assessment (formerly in "triage")
+    chief_complaint TEXT, -- Can be refined by doctor from appointments.chief_complaint
+    history_present_illness TEXT, -- Detailed narrative of current problem
+    symptoms TEXT, -- Current symptoms for this visit
 
     -- General Examination
     general_appearance TEXT,
@@ -345,6 +481,7 @@ CREATE TABLE appointment_examination (
 
     -- Findings
     examination_findings TEXT,
+    vitals_reviewed BOOLEAN DEFAULT TRUE, -- Confirmation that doctor reviewed vitals
 
     -- Diagnosis
     primary_diagnosis VARCHAR(255),
@@ -357,8 +494,14 @@ CREATE TABLE appointment_examination (
     follow_up_date DATE,
     follow_up_instructions TEXT,
 
+    -- Medical History Review (audit trail)
+    medical_history_reviewed BOOLEAN DEFAULT TRUE, -- Doctor confirmed review
+    medical_history_updated BOOLEAN DEFAULT FALSE, -- Flag if medical history was updated
+    medical_history_update_notes TEXT, -- What changed during this visit
+
     -- Doctor
     examined_by BIGINT NOT NULL,
+    examined_by_name VARCHAR(100),
     examined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_examination_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
@@ -525,22 +668,32 @@ CREATE TABLE ipd_admission_logs (
 -- Create index for ipd_admission_logs table
 CREATE INDEX idx_admission_log_appointment ON ipd_admission_logs(appointment_id);
 
+-- Medical History Audit Trail (Track all medical history changes)
+CREATE TABLE patient_medical_history_audit (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    patient_id BIGINT NOT NULL,
+    appointment_id BIGINT, -- Which appointment triggered the change
+
+    field_changed VARCHAR(100), -- known_allergies, chronic_conditions, etc.
+    old_value TEXT,
+    new_value TEXT,
+
+    changed_by BIGINT,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reason TEXT,
+
+    CONSTRAINT fk_history_audit_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
+    CONSTRAINT fk_history_audit_appointment FOREIGN KEY (appointment_id) REFERENCES appointments(id),
+    CONSTRAINT fk_history_audit_changed_by FOREIGN KEY (changed_by) REFERENCES staff(id)
+);
+
+-- Create indexes for patient_medical_history_audit
+CREATE INDEX idx_history_audit_patient ON patient_medical_history_audit(patient_id);
+CREATE INDEX idx_history_audit_changed_at ON patient_medical_history_audit(changed_at);
+
 -- ============================================
 -- SEED DATA FOR APPOINTMENTS
 -- ============================================
-
--- Add department dropdown data
-INSERT INTO dropdown_lookup (type, code, description, display_order) VALUES
-('DEPARTMENT', 'GENERAL_MEDICINE', 'General Medicine', 1),
-('DEPARTMENT', 'PEDIATRICS', 'Pediatrics', 2),
-('DEPARTMENT', 'ORTHOPEDICS', 'Orthopedics', 3),
-('DEPARTMENT', 'CARDIOLOGY', 'Cardiology', 4),
-('DEPARTMENT', 'GYNECOLOGY', 'Gynecology', 5),
-('DEPARTMENT', 'DERMATOLOGY', 'Dermatology', 6),
-('DEPARTMENT', 'ENT', 'ENT (Ear, Nose, Throat)', 7),
-('DEPARTMENT', 'OPHTHALMOLOGY', 'Ophthalmology', 8),
-('DEPARTMENT', 'PSYCHIATRY', 'Psychiatry', 9),
-('DEPARTMENT', 'DENTISTRY', 'Dentistry', 10);
 
 -- Add consultation room data
 INSERT INTO dropdown_lookup (type, code, description, display_order) VALUES
@@ -569,42 +722,45 @@ INSERT INTO appointments (appointment_number, patient_id, appointment_type, appo
  1, 'Room 201', 'URGENT', 'IN_CONSULTATION',
  'Chest pain and breathlessness', 'Requires ECG and echo', 1);
 
--- Sample Triage Data
-INSERT INTO appointment_triage (appointment_id, recorded_by, chief_complaints, history_present_illness,
-                                past_medical_history, allergies, current_medications, notes) VALUES
-(2, 3, 'Headache and nausea for 2 days',
- 'Headache started 2 days ago, progressively worsening. Nausea since this morning.',
- 'No significant past medical history',
- 'No known allergies',
- 'None',
- 'Patient appears comfortable but reports severe headache');
-
 -- Sample Vitals Data
-INSERT INTO appointment_vitals (appointment_id, weight, height, temperature, temperature_unit,
-                                heart_rate, respiratory_rate, systolic_bp, diastolic_bp, spo2,
-                                random_blood_sugar, bmi, bmi_status, pain_level, symptoms, recorded_by) VALUES
-(2, 65.5, 162, 98.6, 'F', 78, 16, 120, 80, 98, 95, 24.95, 'Normal', 7,
- '["Headache", "Nausea"]', 3),
+INSERT INTO vitals (appointment_id, weight, height, temperature, temperature_unit,
+                    heart_rate, respiratory_rate, systolic_bp, diastolic_bp, spo2,
+                    random_blood_sugar, bmi, bmi_status, pain_level, recorded_by, recorded_by_name) VALUES
+(2, 65.5, 162, 98.6, 'F', 78, 16.5, 120, 80, 98.0, 95.0, 24.95, 'NORMAL', 7, 3, 'Nurse Aliya'),
 
-(3, 75.0, 175, 99.2, 'F', 95, 20, 140, 90, 96, 110, 24.49, 'Normal', 5,
- '["Chest pain", "Breathlessness", "Sweating"]', 3);
+(3, 75.0, 175, 99.2, 'F', 95, 20.0, 140, 90, 96.0, 110.0, 24.49, 'NORMAL', 5, 3, 'Nurse Aliya');
+
+-- Sample Vital Symptoms Data
+INSERT INTO vital_symptoms (vital_id, symptom) VALUES
+(1, 'Headache'),
+(1, 'Nausea'),
+(2, 'Chest pain'),
+(2, 'Breathlessness'),
+(2, 'Sweating');
 
 -- Sample Examination Data
-INSERT INTO appointment_examination (appointment_id, general_appearance, cardiovascular_system,
-                                    respiratory_system, examination_findings, primary_diagnosis,
+INSERT INTO appointment_examination (appointment_id, chief_complaint, history_present_illness, symptoms,
+                                    general_appearance, cardiovascular_system, respiratory_system,
+                                    examination_findings, vitals_reviewed, primary_diagnosis,
                                     primary_diagnosis_icd10, differential_diagnosis, treatment_plan,
-                                    advice, follow_up_date, examined_by) VALUES
-(3, 'Patient is anxious, appears distressed',
+                                    advice, follow_up_date, medical_history_reviewed, examined_by, examined_by_name) VALUES
+(3, 'Chest pain and breathlessness',
+ 'Patient reports sudden onset chest pain starting 2 hours ago, radiating to left arm. Associated with breathlessness and sweating.',
+ 'Chest pain, Breathlessness, Sweating',
+ 'Patient is anxious, appears distressed',
  'S1 S2 heard, tachycardia present, no murmurs',
  'Bilateral air entry equal, no added sounds',
  'Mild tachycardia, elevated BP, chest examination normal',
+ TRUE,
  'Acute Coronary Syndrome - suspected',
  'I24.9',
  'Angina, GERD, Musculoskeletal pain',
  'ECG and Cardiac enzymes ordered, Monitor vitals, IV access',
  'Admit for observation, cardiology consult',
  '2025-11-12',
- 1);
+ TRUE,
+ 1,
+ 'Dr. Aap Shaikh');
 
 -- Sample Prescriptions
 INSERT INTO prescriptions (prescription_number, appointment_id, patient_id, physician_id,

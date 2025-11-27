@@ -2656,9 +2656,12 @@ components:
           description: Heart rate in bpm
           example: 88
         respiratoryRate:
-          type: integer
+          type: number
+          format: double
+          minimum: 1.0
+          maximum: 100.0
           description: Respiratory rate in breaths/min
-          example: 18
+          example: 18.5
         systolicBp:
           type: integer
           description: Systolic BP in mmHg

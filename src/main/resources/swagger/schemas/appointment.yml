@@ -4,7 +4,6 @@ AppointmentStatus:
     - DRAFT
     - CONFIRMED
     - WAITING
-    - IN_TRIAGE
     - IN_CONSULTATION
     - TO_INVOICE
     - COMPLETED
@@ -151,8 +150,6 @@ AppointmentDetailResponse:
               type: string
             contactNumber:
               type: string
-        triage:
-          $ref: '#/TriageResponse'
         vitals:
           type: array
           items:
@@ -185,51 +182,6 @@ AppointmentPageResponse:
     size:
       type: integer
 
-TriageRequest:
-  type: object
-  properties:
-    chiefComplaints:
-      type: string
-      example: "High fever and dry cough"
-    historyPresentIllness:
-      type: string
-      example: "Fever started 3 days ago, cough since yesterday"
-    pastMedicalHistory:
-      type: string
-      example: "Asthma diagnosed 5 years ago"
-    familyHistory:
-      type: string
-    allergies:
-      type: string
-      example: "Penicillin"
-    currentMedications:
-      type: string
-      example: "Salbutamol inhaler"
-    socialHistory:
-      type: string
-    notes:
-      type: string
-      example: "Patient appears distressed"
-
-TriageResponse:
-  allOf:
-    - $ref: '#/TriageRequest'
-    - type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        appointmentId:
-          type: integer
-          format: int64
-        recordedBy:
-          type: integer
-          format: int64
-        recordedByName:
-          type: string
-        recordedAt:
-          type: string
-          format: date-time
 
 VitalsRequest:
   type: object
@@ -261,9 +213,12 @@ VitalsRequest:
       description: Heart rate in bpm
       example: 88
     respiratoryRate:
-      type: integer
+      type: number
+      format: double
+      minimum: 1.0
+      maximum: 100.0
       description: Respiratory rate in breaths/min
-      example: 18
+      example: 18.5
     systolicBp:
       type: integer
       description: Systolic BP in mmHg
@@ -324,6 +279,18 @@ VitalsResponse:
 ExaminationRequest:
   type: object
   properties:
+    chiefComplaint:
+      type: string
+      description: Can be refined by doctor from appointment's chief complaint
+      example: "Severe fever and persistent cough"
+    historyPresentIllness:
+      type: string
+      description: Detailed narrative of current problem
+      example: "Patient reports fever starting 3 days ago with progressive worsening. Dry cough developed yesterday."
+    symptoms:
+      type: string
+      description: Current symptoms for this visit
+      example: "Fever, cough, headache, body ache"
     generalAppearance:
       type: string
       example: "Patient is alert and oriented"
@@ -342,6 +309,10 @@ ExaminationRequest:
     examinationFindings:
       type: string
       example: "Mild tachycardia, temperature elevated"
+    vitalsReviewed:
+      type: boolean
+      description: Confirmation that doctor reviewed vitals
+      default: true
     primaryDiagnosis:
       type: string
       example: "Upper Respiratory Tract Infection"
@@ -364,6 +335,18 @@ ExaminationRequest:
     followUpInstructions:
       type: string
       example: "Return if fever persists beyond 3 days"
+    medicalHistoryReviewed:
+      type: boolean
+      description: Confirmation that doctor reviewed medical history
+      default: true
+    medicalHistoryUpdated:
+      type: boolean
+      description: Flag if medical history was updated during this visit
+      default: false
+    medicalHistoryUpdateNotes:
+      type: string
+      description: What changed in medical history during this visit
+      example: "Added new allergy: Latex"
 
 ExaminationResponse:
   allOf:

@@ -27,6 +27,8 @@ public class PatientService {
     private final PatientRepository patientRepository;
     private final CurrentUser currentUser;
     private final PatientMapper patientMapper;
+    private final com.healix.repository.PatientMedicalHistoryRepository medicalHistoryRepository;
+    private final com.healix.repository.StaffRepository staffRepository;
 
     private String clinicCode() {
         return "SNG";
@@ -316,5 +318,79 @@ public class PatientService {
                 patient.setInsurance(null);
             }
         }
+    }
+
+    /**
+     * Update patient medical history
+     * Only authorized medical staff can update medical history
+     */
+    public MedicalHistoryResponse updatePatientMedicalHistory(Long patientId, MedicalHistoryRequest request) {
+        log.info("Updating medical history for patient ID: {}", patientId);
+
+        // Validate patient exists
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found with ID: " + patientId));
+
+        // Get existing medical history or create new
+        com.healix.entity.PatientMedicalHistory medicalHistory =
+                medicalHistoryRepository.findByPatientId(patientId)
+                        .orElse(com.healix.entity.PatientMedicalHistory.builder()
+                                .patient(patient)
+                                .build());
+
+        // Update fields
+        if (request.getKnownAllergies() != null) {
+            medicalHistory.setKnownAllergies(request.getKnownAllergies());
+        }
+        if (request.getCurrentMedications() != null) {
+            medicalHistory.setCurrentMedications(request.getCurrentMedications());
+        }
+        if (request.getPastSurgeries() != null) {
+            medicalHistory.setPastSurgeries(request.getPastSurgeries());
+        }
+        if (request.getChronicConditions() != null) {
+            medicalHistory.setChronicConditions(request.getChronicConditions());
+        }
+        if (request.getFamilyMedicalHistory() != null) {
+            medicalHistory.setFamilyMedicalHistory(request.getFamilyMedicalHistory());
+        }
+        if (request.getDisability() != null) {
+            medicalHistory.setDisability(request.getDisability());
+        }
+
+        // Set updated by staff
+        try {
+            Long currentUserId = currentUser.getCurrentUser().getId();
+            staffRepository.findById(currentUserId).ifPresent(medicalHistory::setUpdatedBy);
+        } catch (Exception e) {
+            log.warn("Could not set updatedBy staff: {}", e.getMessage());
+        }
+
+        // Save medical history
+        com.healix.entity.PatientMedicalHistory savedHistory = medicalHistoryRepository.save(medicalHistory);
+        log.info("Medical history updated successfully for patient ID: {}", patientId);
+
+        return patientMapper.toMedicalHistoryResponse(savedHistory);
+    }
+
+    /**
+     * Get patient medical history
+     */
+    @Transactional(readOnly = true)
+    public MedicalHistoryResponse getPatientMedicalHistory(Long patientId) {
+        log.info("Fetching medical history for patient ID: {}", patientId);
+
+        // Validate patient exists
+        if (!patientRepository.existsById(patientId)) {
+            throw new ResourceNotFoundException("Patient not found with ID: " + patientId);
+        }
+
+        // Get medical history
+        com.healix.entity.PatientMedicalHistory medicalHistory =
+                medicalHistoryRepository.findByPatientId(patientId)
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Medical history not found for patient ID: " + patientId));
+
+        return patientMapper.toMedicalHistoryResponse(medicalHistory);
     }
 }

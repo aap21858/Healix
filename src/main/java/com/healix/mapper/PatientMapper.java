@@ -106,4 +106,14 @@ public interface PatientMapper {
             }
         }
     }
+
+    // Medical History Mapping
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "knownAllergies", source = "knownAllergies")
+    @Mapping(target = "currentMedications", source = "currentMedications")
+    @Mapping(target = "pastSurgeries", source = "pastSurgeries")
+    @Mapping(target = "chronicConditions", source = "chronicConditions")
+    @Mapping(target = "familyMedicalHistory", source = "familyMedicalHistory")
+    @Mapping(target = "disability", source = "disability")
+    com.healix.model.MedicalHistoryResponse toMedicalHistoryResponse(com.healix.entity.PatientMedicalHistory medicalHistory);
 }

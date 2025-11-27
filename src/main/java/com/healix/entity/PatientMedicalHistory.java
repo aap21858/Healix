@@ -46,6 +46,13 @@ public class PatientMedicalHistory {
     @Column(name = "disability", columnDefinition = "TEXT")
     private String disability;
 
+    @Column(name = "social_history", columnDefinition = "TEXT")
+    private String socialHistory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private Staff updatedBy;
+
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

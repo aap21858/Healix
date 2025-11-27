@@ -1,18 +1,25 @@
 package com.healix.exception;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.healix.model.ErrorResponse;
 import com.healix.model.ValidationErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -68,6 +75,191 @@ public class GlobalExceptionHandler {
                 .error("Validation Failed")
                 .message("Invalid input data")
                 .validationErrors(validationErrors)
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handle JSON parsing errors (e.g., invalid type conversions)
+     * Returns 400 BAD REQUEST
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            HttpServletRequest request) {
+
+        String message = "Invalid request format";
+        String fieldName = null;
+        String invalidValue = null;
+        String expectedType = null;
+
+        // Extract more specific error message with null-safety checks
+        Throwable cause = ex.getCause();
+
+        if (cause instanceof InvalidFormatException ifx) {
+            // Extract field name from path
+            if (ifx.getPath() != null && !ifx.getPath().isEmpty()) {
+                var lastPath = ifx.getPath().getLast();
+                if (lastPath != null && lastPath.getFieldName() != null) {
+                    fieldName = lastPath.getFieldName();
+                }
+            }
+
+            invalidValue = ifx.getValue() != null ? ifx.getValue().toString() : "null";
+            expectedType = ifx.getTargetType() != null ?
+                ifx.getTargetType().getSimpleName() : null;
+
+            if (fieldName != null) {
+                message = String.format("Invalid value '%s' for field '%s'%s",
+                    invalidValue, fieldName,
+                    expectedType != null ? ". Expected type: " + expectedType : "");
+            } else {
+                message = String.format("Invalid value '%s'%s",
+                    invalidValue,
+                    expectedType != null ? ". Expected type: " + expectedType : "");
+            }
+
+        } else if (cause instanceof MismatchedInputException mix) {
+            // Extract field name from path
+            if (mix.getPath() != null && !mix.getPath().isEmpty()) {
+                var lastPath = mix.getPath().getLast();
+                if (lastPath != null && lastPath.getFieldName() != null) {
+                    fieldName = lastPath.getFieldName();
+                }
+            }
+
+            expectedType = mix.getTargetType() != null ?
+                mix.getTargetType().getSimpleName() : null;
+
+            if (fieldName != null) {
+                message = String.format("Invalid input for field '%s'%s",
+                    fieldName,
+                    expectedType != null ? ". Expected type: " + expectedType : "");
+            } else if (expectedType != null) {
+                message = String.format("Invalid input. Expected type: %s", expectedType);
+            }
+
+        } else {
+            // Try to extract field info from the exception message itself
+            Throwable mostSpecificCause = ex.getMostSpecificCause();
+            if (mostSpecificCause != null && mostSpecificCause.getMessage() != null) {
+                String causeMessage = mostSpecificCause.getMessage();
+
+                // Try to parse field name from error message patterns
+                // Pattern: "Cannot deserialize value of type `X` from String \"Y\": ..."
+                // Pattern: "JSON parse error: Cannot deserialize instance of `X` ..."
+                if (causeMessage.contains("Cannot deserialize")) {
+                    message = "Cannot parse request body: " + causeMessage;
+
+                    // Try to extract more info from the message
+                    if (causeMessage.contains("from String")) {
+                        int fromIdx = causeMessage.indexOf("from String \"");
+                        int endIdx = causeMessage.indexOf("\":", fromIdx + 13);
+                        if (fromIdx != -1 && endIdx != -1) {
+                            invalidValue = causeMessage.substring(fromIdx + 13, endIdx);
+                        }
+                    }
+
+                    if (causeMessage.contains("type `") || causeMessage.contains("instance of `")) {
+                        int typeStart = causeMessage.indexOf("type `");
+                        if (typeStart == -1) typeStart = causeMessage.indexOf("instance of `");
+                        if (typeStart != -1) {
+                            int typeEnd = causeMessage.indexOf("`", typeStart + 6);
+                            if (typeEnd != -1) {
+                                String fullType = causeMessage.substring(typeStart + 6, typeEnd);
+                                expectedType = fullType.substring(fullType.lastIndexOf('.') + 1);
+                            }
+                        }
+                    }
+
+                    // Build better message if we extracted details
+                    if (invalidValue != null && expectedType != null) {
+                        message = String.format("Invalid value '%s'. Expected type: %s",
+                            invalidValue, expectedType);
+                    } else if (expectedType != null) {
+                        message = String.format("Invalid input. Expected type: %s", expectedType);
+                    }
+
+                } else if (causeMessage.contains("not a valid")) {
+                    message = "Invalid data format: " + causeMessage;
+                } else {
+                    // Include the original error message for better debugging
+                    message = "Invalid request format: " + causeMessage;
+                }
+            }
+
+            // Last resort: check the main exception message
+            if (message.equals("Invalid request format") && ex.getMessage() != null) {
+                String exMessage = ex.getMessage();
+                if (exMessage.length() > 200) {
+                    message = "Invalid request format: " + exMessage.substring(0, 200) + "...";
+                } else {
+                    message = "Invalid request format: " + exMessage;
+                }
+            }
+        }
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message(message)
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handle constraint violations (e.g., from @Valid on entity level)
+     * Returns 400 BAD REQUEST
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ValidationErrorResponse> handleConstraintViolation(
+            ConstraintViolationException ex,
+            HttpServletRequest request) {
+
+        Map<String, String> validationErrors = ex.getConstraintViolations().stream()
+                .collect(Collectors.toMap(
+                    violation -> violation.getPropertyPath().toString(),
+                    ConstraintViolation::getMessage,
+                    (existing, replacement) -> existing + "; " + replacement
+                ));
+
+        ValidationErrorResponse errorResponse = ValidationErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Validation Failed")
+                .message("Constraint violations occurred")
+                .validationErrors(validationErrors)
+                .path(request.getRequestURI())
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handle method argument type mismatch (e.g., string in path variable expecting number)
+     * Returns 400 BAD REQUEST
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+
+        String typeName = ex.getRequiredType() != null ?
+            ex.getRequiredType().getSimpleName() : "unknown type";
+
+        String message = String.format("Invalid value '%s' for parameter '%s'. Expected type: %s",
+                ex.getValue(), ex.getName(), typeName);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message(message)
                 .path(request.getRequestURI())
                 .build();
 

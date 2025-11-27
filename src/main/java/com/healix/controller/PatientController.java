@@ -147,6 +147,22 @@ public class PatientController implements PatientManagementApi {
         return ResponseEntity.ok(response);
     }
 
+    @Override
+    public ResponseEntity<MedicalHistoryResponse> updatePatientMedicalHistory(Long id, MedicalHistoryRequest medicalHistoryRequest) {
+        log.info("Update medical history request received for patient ID: {}", id);
+
+        MedicalHistoryResponse response = patientService.updatePatientMedicalHistory(id, medicalHistoryRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<MedicalHistoryResponse> getPatientMedicalHistory(Long id) {
+        log.info("Get medical history request received for patient ID: {}", id);
+
+        MedicalHistoryResponse response = patientService.getPatientMedicalHistory(id);
+        return ResponseEntity.ok(response);
+    }
+
     private Pageable createPageable(Integer page, Integer size, String sort) {
         // Helper method to create Pageable from query params
         return Pageable.ofSize(size != null ? size : 20)

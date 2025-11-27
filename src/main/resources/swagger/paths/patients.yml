@@ -291,6 +291,87 @@ patients-upload-csv:
       '401':
         $ref: '../responses/common.yml#/UnauthorizedError'
 
+patients-medical-history:
+  put:
+    tags:
+      - Patient Management
+    summary: Update patient medical history
+    description: Update medical history for a patient (only accessible by authorized medical staff)
+    operationId: updatePatientMedicalHistory
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Patient database ID
+        schema:
+          type: integer
+          format: int64
+          example: 1
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/patient.yml#/MedicalHistoryRequest'
+    responses:
+      '200':
+        description: Medical history updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/MedicalHistoryResponse'
+      '404':
+        description: Patient not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+      '400':
+        description: Invalid input data
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ValidationErrorResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+      '403':
+        description: Forbidden - Insufficient permissions
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+
+  get:
+    tags:
+      - Patient Management
+    summary: Get patient medical history
+    description: Retrieve medical history for a patient
+    operationId: getPatientMedicalHistory
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Patient database ID
+        schema:
+          type: integer
+          format: int64
+          example: 1
+    responses:
+      '200':
+        description: Medical history retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/patient.yml#/MedicalHistoryResponse'
+      '404':
+        description: Patient or medical history not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yml#/ErrorResponse'
+      '401':
+        $ref: '../responses/common.yml#/UnauthorizedError'
+
 patients-csv-template:
   get:
     tags:

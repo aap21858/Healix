@@ -1,29 +1,40 @@
 package com.healix.controller;
 
 import com.healix.api.AppointmentManagementApi;
-import com.healix.mapper.PageMapper;
+import com.healix.dto.AppointmentAuditDTO;
+import com.healix.dto.AvailableSlotDTO;
 import com.healix.model.*;
+import com.healix.service.AppointmentAuditService;
 import com.healix.service.AppointmentService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.healix.service.AvailabilityService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequiredArgsConstructor
-@Slf4j
 public class AppointmentController implements AppointmentManagementApi {
 
+    private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
+
     private final AppointmentService appointmentService;
-    private final PageMapper pageMapper;
+    private final AppointmentAuditService appointmentAuditService;
+    private final AvailabilityService availabilityService;
+
+    public AppointmentController(AppointmentService appointmentService, AppointmentAuditService appointmentAuditService, AvailabilityService availabilityService) {
+        this.appointmentService = appointmentService;
+        this.appointmentAuditService = appointmentAuditService;
+        this.availabilityService = availabilityService;
+    }
 
     @Override
     public ResponseEntity<AppointmentResponse> createAppointment(AppointmentRequest appointmentRequest) {
@@ -121,25 +132,6 @@ public class AppointmentController implements AppointmentManagementApi {
         return ResponseEntity.ok(response);
     }
 
-    @Override
-    public ResponseEntity<TriageResponse> createOrUpdateTriage(
-            Long appointmentId, TriageRequest triageRequest) {
-
-        log.info("Creating/updating triage for appointment: {}", appointmentId);
-
-        TriageResponse response = appointmentService.createOrUpdateTriage(appointmentId, triageRequest);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @Override
-    public ResponseEntity<TriageResponse> getTriageByAppointment(Long appointmentId) {
-        log.info("Fetching triage for appointment: {}", appointmentId);
-
-        TriageResponse response = appointmentService.getTriageByAppointment(appointmentId);
-
-        return ResponseEntity.ok(response);
-    }
 
     @Override
     public ResponseEntity<VitalsResponse> recordVitals(
@@ -161,22 +153,27 @@ public class AppointmentController implements AppointmentManagementApi {
         return ResponseEntity.ok(response);
     }
 
-    // Note: Examination, Prescription, Investigation, Referral, Admit, and Discharge methods
-    // are placeholders and should be implemented similarly to triage and vitals
+    // Note: Prescription, Investigation, Referral, Admit, and Discharge methods
+    // are placeholders and should be implemented similarly to vitals and examination
 
     @Override
     public ResponseEntity<ExaminationResponse> recordExamination(
             Long appointmentId, ExaminationRequest examinationRequest) {
-        // TODO: Implement examination recording
-        log.warn("Examination recording not yet implemented");
-        throw new UnsupportedOperationException("Examination recording not yet implemented");
+
+        log.info("Recording examination for appointment: {}", appointmentId);
+
+        ExaminationResponse response = appointmentService.recordExamination(appointmentId, examinationRequest);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Override
     public ResponseEntity<ExaminationResponse> getExaminationByAppointment(Long appointmentId) {
-        // TODO: Implement examination retrieval
-        log.warn("Examination retrieval not yet implemented");
-        throw new UnsupportedOperationException("Examination retrieval not yet implemented");
+        log.info("Fetching examination for appointment: {}", appointmentId);
+
+        ExaminationResponse response = appointmentService.getExaminationByAppointment(appointmentId);
+
+        return ResponseEntity.ok(response);
     }
 
     @Override
@@ -257,6 +254,67 @@ public class AppointmentController implements AppointmentManagementApi {
     }
 
     /**
+     * Get appointment audit history
+     * GET /api/appointments/{id}/audit
+     */
+    @GetMapping("/api/appointments/{id}/audit")
+    public ResponseEntity<List<AppointmentAuditDTO>> getAppointmentAuditHistory(@PathVariable Long id) {
+        log.info("Fetching audit history for appointment ID: {}", id);
+        List<AppointmentAuditDTO> auditHistory = appointmentAuditService.getAppointmentAuditHistory(id);
+        return ResponseEntity.ok(auditHistory);
+    }
+
+    /**
+     * Reschedule an appointment
+     * POST /api/appointments/{id}/reschedule
+     */
+    @PostMapping("/api/appointments/{id}/reschedule")
+    public ResponseEntity<AppointmentResponse> rescheduleAppointment(
+            @PathVariable Long id,
+            @RequestBody RescheduleRequest request) {
+
+        log.info("Rescheduling appointment ID: {} to date: {} time: {}",
+                id, request.getNewDate(), request.getNewTime());
+
+        AppointmentResponse response = appointmentService.rescheduleAppointment(
+                id,
+                request.getNewDate(),
+                request.getNewTime(),
+                request.getReason()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Cancel appointment with reason
+     * POST /api/appointments/{id}/cancel
+     */
+    @PostMapping("/api/appointments/{id}/cancel")
+    public ResponseEntity<Void> cancelAppointmentWithReason(
+            @PathVariable Long id,
+            @RequestBody CancelRequest request) {
+
+        log.info("Cancelling appointment ID: {} with reason: {}", id, request.getReason());
+        appointmentService.cancelAppointmentWithReason(id, request.getReason());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get available appointment slots for a doctor on a specific date
+     * GET /api/appointments/slots/available?doctorId={doctorId}&date={date}
+     */
+    @GetMapping("/api/appointments/slots/available")
+    public ResponseEntity<List<AvailableSlotDTO>> getAvailableSlots(
+            @RequestParam Long doctorId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        log.info("Fetching available slots for doctor ID: {} on date: {}", doctorId, date);
+        List<AvailableSlotDTO> availableSlots = availabilityService.getAvailableSlots(doctorId, date);
+        return ResponseEntity.ok(availableSlots);
+    }
+
+    /**
      * Helper method to create Pageable from request parameters
      */
     private Pageable createPageable(Integer page, Integer size, String sort) {
@@ -276,3 +334,23 @@ public class AppointmentController implements AppointmentManagementApi {
     }
 }
 
+// Request DTOs for new endpoints
+class RescheduleRequest {
+    private LocalDate newDate;
+    private String newTime;
+    private String reason;
+
+    public LocalDate getNewDate() { return newDate; }
+    public void setNewDate(LocalDate newDate) { this.newDate = newDate; }
+    public String getNewTime() { return newTime; }
+    public void setNewTime(String newTime) { this.newTime = newTime; }
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
+}
+
+class CancelRequest {
+    private String reason;
+
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
+}

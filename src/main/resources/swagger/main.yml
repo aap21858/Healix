@@ -10,7 +10,7 @@ info:
     - Insurance details tracking
     - Medical history records
     - Appointment scheduling and management
-    - Triage, vitals, and examination
+    - Vitals recording and examination
     - Prescription and investigation management
     - IPD/OPD workflow
 
@@ -43,7 +43,7 @@ tags:
   - name: Dropdown Lookup
     description: Generic dropdown/lookup reference data management
   - name: Appointment Management
-    description: Appointment scheduling, triage, consultation, prescriptions, and IPD management
+    description: Appointment scheduling, vitals, examination, prescriptions, and IPD management
 
 paths:
   # Authentication endpoints
@@ -61,6 +61,8 @@ paths:
     $ref: './paths/patients.yml#/patients-by-id'
   /api/patients/{id}/activate:
     $ref: './paths/patients.yml#/patients-activate'
+  /api/patients/{id}/medical-history:
+    $ref: './paths/patients.yml#/patients-medical-history'
   /api/patients/patient-id/{patientId}:
     $ref: './paths/patients.yml#/patients-by-patient-id'
   /api/patients/search:
@@ -101,8 +103,6 @@ paths:
     $ref: './paths/appointments.yml#/appointments-search'
   /api/appointments/{id}/status:
     $ref: './paths/appointments.yml#/appointments-status'
-  /api/appointments/{appointmentId}/triage:
-    $ref: './paths/appointments.yml#/appointments-triage'
   /api/appointments/{appointmentId}/vitals:
     $ref: './paths/appointments.yml#/appointments-vitals'
   /api/appointments/{appointmentId}/examination:
@@ -238,10 +238,6 @@ components:
       $ref: './schemas/appointment.yml#/AppointmentDetailResponse'
     AppointmentPageResponse:
       $ref: './schemas/appointment.yml#/AppointmentPageResponse'
-    TriageRequest:
-      $ref: './schemas/appointment.yml#/TriageRequest'
-    TriageResponse:
-      $ref: './schemas/appointment.yml#/TriageResponse'
     VitalsRequest:
       $ref: './schemas/appointment.yml#/VitalsRequest'
     VitalsResponse:

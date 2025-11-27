@@ -203,65 +203,12 @@ appointments-status:
       '404':
         description: Appointment not found
 
-appointments-triage:
-  post:
-    tags:
-      - Appointment Management
-    summary: Create or update triage data
-    description: Record pre-consultation assessment by nurse or junior doctor
-    operationId: createOrUpdateTriage
-    parameters:
-      - name: appointmentId
-        in: path
-        required: true
-        schema:
-          type: integer
-          format: int64
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '../schemas/appointment.yml#/TriageRequest'
-    responses:
-      '201':
-        description: Triage data recorded successfully
-        content:
-          application/json:
-            schema:
-              $ref: '../schemas/appointment.yml#/TriageResponse'
-      '404':
-        description: Appointment not found
-
-  get:
-    tags:
-      - Appointment Management
-    summary: Get triage data
-    description: Retrieve triage data for an appointment
-    operationId: getTriageByAppointment
-    parameters:
-      - name: appointmentId
-        in: path
-        required: true
-        schema:
-          type: integer
-          format: int64
-    responses:
-      '200':
-        description: Triage data retrieved
-        content:
-          application/json:
-            schema:
-              $ref: '../schemas/appointment.yml#/TriageResponse'
-      '404':
-        description: Triage data not found
-
 appointments-vitals:
   post:
     tags:
       - Appointment Management
     summary: Record vitals
-    description: Record patient vitals during triage
+    description: Record patient vitals before examination
     operationId: recordVitals
     parameters:
       - name: appointmentId

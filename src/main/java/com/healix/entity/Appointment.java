@@ -48,6 +48,9 @@ public class Appointment {
     @Column(name = "department_id")
     private Long departmentId;
 
+    @Column(name = "specialty", length = 100)
+    private String specialty;
+
     @Column(name = "physician_id", nullable = false)
     private Long physicianId;
 
@@ -74,6 +77,70 @@ public class Appointment {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    // Medical History Review (for check-in)
+    @Column(name = "medical_history_review_required")
+    private Boolean medicalHistoryReviewRequired = false;
+
+    @Column(name = "medical_history_review_notes", columnDefinition = "TEXT")
+    private String medicalHistoryReviewNotes;
+
+    // Referral fields
+    @Column(name = "referred_from_appointment_id")
+    private Long referredFromAppointmentId;
+
+    @Column(name = "referred_to_department_id")
+    private Long referredToDepartmentId;
+
+    @Column(name = "referred_to_physician_id")
+    private Long referredToPhysicianId;
+
+    // IPD specific fields
+    @Column(name = "bed_id")
+    private Long bedId;
+
+    @Column(name = "admission_date")
+    private LocalDateTime admissionDate;
+
+    @Column(name = "discharge_date")
+    private LocalDateTime dischargeDate;
+
+    // Completion Details
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "actual_duration_minutes")
+    private Integer actualDurationMinutes;
+
+    // Cancellation/Rescheduling
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "cancelled_by")
+    private Long cancelledBy;
+
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    private String cancellationReason;
+
+    @Column(name = "rescheduled_from_id")
+    private Long rescheduledFromId;
+
+    @Column(name = "rescheduled_to_id")
+    private Long rescheduledToId;
+
+    // Metadata
+    @Column(name = "room_number", length = 20)
+    private String roomNumber;
+
+    @Column(name = "equipment_required", columnDefinition = "TEXT")
+    private String equipmentRequired;
+
+    @Column(name = "requires_assistance")
+    private Boolean requiresAssistance;
+
+    // Audit fields
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -93,14 +160,14 @@ public class Appointment {
         if (status == null) {
             status = AppointmentStatus.DRAFT;
         }
-        if (appointmentType == null) {
-            appointmentType = AppointmentType.OPD;
-        }
         if (urgencyLevel == null) {
             urgencyLevel = UrgencyLevel.NORMAL;
         }
         if (duration == null) {
             duration = 30;
+        }
+        if (requiresAssistance == null) {
+            requiresAssistance = false;
         }
     }
 
@@ -109,4 +176,3 @@ public class Appointment {
         updatedAt = LocalDateTime.now();
     }
 }
-
